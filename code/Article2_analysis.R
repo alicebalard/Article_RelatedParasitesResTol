@@ -10,72 +10,152 @@
 #### Load data and functions within ####
 source("dataPreparation.R")
 
+###### Map of our samples FIGURE 1 (with design) ######
+hmhzline <- read.csv("../data/HMHZ.csv")
+area <- get_stamenmap(bbox = c(9, 49, 17, 53.7), zoom = 7,
+                      maptype = "toner-lite")
+
+map <- ggmap(area) +
+  geom_path(hmhzline, mapping =  aes(x = lon, y = lat), col = "purple", size = 4) +
+  geom_label_repel(data = forMap,
+                   aes(longitude, latitude, label = Name),
+                   box.padding = 2, size = 5) +
+  geom_point(data = forMap, aes(longitude, latitude, col = color), size = 6) +
+  scale_color_manual(values = as.character(levels(forMap$color))) +
+  theme_bw() +
+  theme(legend.position = 'none', axis.ticks=element_blank())
+map 
+
+pdf(file = "../figures/Fig1.pdf", width = 5, height =5)
+map
+dev.off()
+
 ######################################
 ########## Read information ##########
 ######################################
 
-DF_all # all 168 mice
-length(na.omit(ALL_summary_F0$relWL))# 108 F0 mice
-length(na.omit(ALL_summary_F1$relWL))# 60 F1 mice
-length(na.omit(ALL_summary_F0$peak.oocysts.per.g.mouse))# 99 F0 mice
-length(na.omit(ALL_summary_F1$peak.oocysts.per.g.mouse))# 59 F1 mice
-length(na.omit(ALL_summary_F0$invtolerance))# 103 F0 mice
-length(na.omit(ALL_summary_F1$invtolerance))# 60 F0 mice
+# full data
+rawDF108mice <- DF_all[grep("F0", DF_all$Mouse_genotype),]
+length(unique(rawDF108mice$EH_ID))
+levels(rawDF108mice$infection_isolate) <- c("Brandenburg139 (E. ferrisi)",
+                                            "Brandenburg64 (E. ferrisi)", "Brandenburg88 (E. falciformis)")
+# summary data
+summaryDF108mice <- ALL_summary_F0
+summaryDF108mice$Mouse_genotype <- droplevels(factor(summaryDF108mice$Mouse_genotype))
+summaryDF108mice$Mouse_subspecies <- droplevels(factor(summaryDF108mice$Mouse_subspecies))
+levels(summaryDF108mice$infection_isolate) <- c("Brandenburg139 (E. ferrisi)",
+                                                "Brandenburg64 (E. ferrisi)", "Brandenburg88 (E. falciformis)")
+summaryDF108mice$Eimeria_species <- as.factor(summaryDF108mice$Eimeria_species)
+summaryDF108mice$Eimeria_species <- relevel(summaryDF108mice$Eimeria_species, "E.ferrisi")
 
-ALL_summary$Exp_2groups <- "group2"
-ALL_summary$Exp_2groups[ALL_summary$Exp_ID %in% c("Exp_003", "Exp_004")] <- "group1"
-ALL_summary[ALL_summary$Exp_2groups %in% "group1",] %>%
-  dplyr::select(Mouse_genotype, infection_isolate) %>%
-  dplyr::group_by(Mouse_genotype, infection_isolate)%>%
-  dplyr::summarize(sum=n())%>%
-  tidyr::spread(infection_isolate, value = sum)
-ALL_summary[ALL_summary$Exp_2groups %in% "group2",] %>%
-  dplyr::select(Mouse_genotype, infection_isolate) %>%
-  dplyr::group_by(Mouse_genotype, infection_isolate)%>%
-  dplyr::summarize(sum=n())%>%
-  tidyr::spread(infection_isolate, value = sum)
+length(na.omit(summaryDF108mice$relWL))# 108 F0 mice
+length(na.omit(summaryDF108mice$peak.oocysts.per.g.mouse))# 99 F0 mice
+length(na.omit(summaryDF108mice$invtolerance))# 99 F0 mice
+
+## Set infection group (group 1 had anthelminthics, did not kill worms, stopped after: test effect)
+summaryDF108mice$batch <- summaryDF108mice$Exp_ID
+levels(summaryDF108mice$batch) <- c("B1", "B2", "B3", "B4", "B5", "B6")
+
+summaryDF108mice$anth<- FALSE
+summaryDF108mice$anth[summaryDF108mice$batch %in% "B1"] <- TRUE
+
+table(summaryDF108mice$infection_isolate, summaryDF108mice$Mouse_genotype, summaryDF108mice$anth)
+
+##### GENERAL PARASITOLOGY #####
+
+## Age of mice
+range(as.numeric(rawDF108mice$ageAtInfection))
 
 ###### what is the overall peak day for each parasite isolate? ######
-aggregate(ALL_summary$dpi_max.oocysts.per.tube,
-          list(ALL_summary$infection_isolate), function(x) {paste(length(x), median(x), round(sd(x),2))})
-aggregate(ALL_summary$dpi_minWeight,
-          list(ALL_summary$infection_isolate), function(x) {paste(length(x), median(x), round(sd(x),2))})
+aggregate(summaryDF108mice$dpi_max.oocysts.per.tube,
+          list(summaryDF108mice$infection_isolate), 
+          function(x) {paste(length(x), median(x), round(sd(x),2))})
+aggregate(summaryDF108mice$dpi_minWeight,
+          list(summaryDF108mice$infection_isolate), 
+          function(x) {paste(length(x), median(x), round(sd(x),2))})
 
 ###### what is the overall prepatent period for each parasite isolate? ######
 d <- as.data.frame(
-  DF_all[!is.na(DF_all$oocysts.per.tube) & DF_all$oocysts.per.tube > 0,] %>% 
+  rawDF108mice[!is.na(rawDF108mice$oocysts.per.tube) & rawDF108mice$oocysts.per.tube > 0,] %>% 
     dplyr::group_by(EH_ID) %>%
     dplyr::slice(which.min(dpi)) %>%
     dplyr::select(EH_ID, weight, HI, startingWeight, ageAtInfection, Sex,
                   Mouse_genotype, Eimeria_species, Mouse_subspecies,
                   infection_isolate, Exp_ID, dpi))
 aggregate(d$dpi,
-          list(d$infection_isolate), function(x) {paste(length(x), median(x), round(sd(x),2))})
+          list(d$infection_isolate), 
+          function(x) {paste(length(x), median(x), round(sd(x),2))})
 
-ggplot(DF_all, aes(dpi, oocysts.per.tube, group = EH_ID)) + geom_line() + facet_grid(.~infection_isolate)
+###### Course of infection FIGURE 2 ######
+forplot <- rawDF108mice %>%
+  group_by(infection_isolate, dpi) %>%
+  summarise(mean = mean(oocysts.per.tube*10e-6, na.rm = TRUE),
+            sd = sd(oocysts.per.tube*10e-6, na.rm = TRUE),
+            n = n()) %>%
+  mutate(se = sd / sqrt(n),
+         lower.ci = mean - qt(1 - (0.05 / 2), n - 1) * se,
+         upper.ci = mean + qt(1 - (0.05 / 2), n - 1) * se)
+
+F2.1 <- ggplot(forplot, aes(dpi, mean, group = infection_isolate, col = infection_isolate)) + 
+  geom_point(size = 3) +
+  geom_line() +
+  geom_errorbar(aes(ymin = lower.ci, ymax = upper.ci), width = .2)+
+  ylab("oocysts shed (10e6)") +
+  scale_x_continuous(breaks = 0:11, name = "days post infection") +
+  theme(legend.position = c(0.25, 0.8)) +
+  labs(color = "Eimeria isolate") 
+
+forplot2 <- rawDF108mice %>%
+  group_by(infection_isolate, dpi) %>%
+  summarise(mean = mean(relativeWeight, na.rm = TRUE),
+            sd = sd(relativeWeight, na.rm = TRUE),
+            n = n()) %>%
+  mutate(se = sd / sqrt(n),
+         lower.ci = mean - qt(1 - (0.05 / 2), n - 1) * se,
+         upper.ci = mean + qt(1 - (0.05 / 2), n - 1) * se)
+
+F2.2 <- ggplot(forplot2, aes(dpi, mean, group = infection_isolate, 
+                             col = infection_isolate)) + 
+  geom_point(size = 3) +
+  geom_line() +
+  geom_errorbar(aes(ymin = lower.ci, ymax = upper.ci), width = .2)+
+  ylab("relative weight compared to day 0 (%)") +
+  scale_x_continuous(breaks = 0:11, name = "days post infection") +
+  theme(legend.position = c(0.25, 0.2)) +
+  labs(color = "Eimeria isolate") 
+
+library(cowplot)
+Fig2 <- plot_grid(F2.1, F2.2,
+                  labels=c("A", "B"), label_size = 20)
+#pdf(file = "../figures/Fig2.pdf", width = 10, height = 5)
+Fig2
+#dev.off()
 
 #################################################
 ########## Chose correct distributions ##########
 #################################################
 
-xRes <- as.numeric(na.omit(ALL_summary$peak.oocysts.per.g.mouse))
-xImp <- as.numeric(na.omit(ALL_summary$relWL))
-xTol <- as.numeric(na.omit(ALL_summary$invtolerance))
+xRes <- as.numeric(na.omit(summaryDF108mice$peak.oocysts.per.g.mouse))
+xImp <- as.numeric(na.omit(summaryDF108mice$relWL))
+xTol <- as.numeric(na.omit(summaryDF108mice$invtolerance))
 
 hist(xRes, breaks = 100)
 descdist(xRes)
-findGoodDist(x = xRes, distribs = c("normal", "negative binomial", "poisson"), 
-             distribs2 = c("norm", "nbinom", "pois"))
+# pdf("../figures/supfig1.1.pdf")
+findGoodDist(x = xRes, distribs = c("normal", "negative binomial"), 
+             distribs2 = c("norm", "nbinom"))
+# dev.off()
 ### nbinom for resistance
 
 hist(xImp, breaks = 100)
 descdist(xImp)
-findGoodDist(x = xImp+ 0.01, distribs = c("normal", "beta", "gamma", "weibull"), 
-             distribs2 = c("norm", "beta", "gamma", "weibull"))
+pdf("../figures/supfig1.2.pdf")
+findGoodDist(x = xImp+ 0.01, distribs = c("normal", "weibull"), 
+             distribs2 = c("norm", "weibull"))
+dev.off()
 ### weibull for impact on health
-ALL_summary$impact <- ALL_summary$relWL +0.01
-ALL_summary_F0$impact <- ALL_summary_F0$relWL +0.01
-ALL_summary_F1$impact <- ALL_summary_F1$relWL +0.01
+
+summaryDF108mice$impact <- summaryDF108mice$relWL +0.01
 
 # for tolerance, we need to find a way to deal with the massive extreme values
 hist(xTol, breaks = 1000)
@@ -86,341 +166,190 @@ xTol2 <- log10(xTol+translation)
 range(xTol2)
 hist(xTol2, breaks = 1000)
 descdist(xTol2)
+
+pdf("../figures/supfig1.3.pdf")
 findGoodDist(x = xTol2, distribs = c("normal"), 
              distribs2 = c("norm"))
+dev.off()
 
 ### We translate, log transfor the data to deal with skewness
-ALL_summary$tolerance <- log10(ALL_summary$invtolerance+translation) + 8
-ALL_summary_F0$tolerance <- log10(ALL_summary_F0$invtolerance+translation) + 8
-ALL_summary_F1$tolerance <- log10(ALL_summary_F1$invtolerance+translation) + 8
+summaryDF108mice$tolerance <- log10(summaryDF108mice$invtolerance+translation) + 8
 
-ALL_summary[is.na(ALL_summary$tolerance), c("EH_ID", "Mouse_genotype", "relWL", "peak.oocysts.per.g.mouse")]
-
-##################################
-########## F0 mice glms ##########
-##################################
+summaryDF108mice[is.na(summaryDF108mice$tolerance), c("EH_ID", "Mouse_genotype", "relWL", "peak.oocysts.per.g.mouse")]
+# 9 mice died before peak
 
 ################
 ## Resistance ##
 ################
-
-# Resistance on F0 (parental strains)
-modRes <- glm.nb(peak.oocysts.per.g.mouse ~ infection_isolate*Mouse_genotype, data = ALL_summary_F0)
-anova(modRes, test = "LRT")
-# SIGNIF infection isolate (p-value = 0.01902) + interactions with mice (p-value = 8.432e-05)
-plot_model(modRes, type = "int", dot.size = 4, dodge = .5)
-
-modRes2 <- glm.nb(peak.oocysts.per.g.mouse ~ Eimeria_species*Mouse_subspecies, data = ALL_summary_F0)
-anova(modRes2)
+# Mmd vs Mmm
+modResSubsp <- glm.nb(peak.oocysts.per.g.mouse ~ Eimeria_species*Mouse_subspecies, data = summaryDF108mice)
+anova(modResSubsp)
 # SIGNIF infection isolate (p-value = 0.02236) + interactions with mice (p-value = 6.52e-07)
-plot_model(modRes2, type = "int", dot.size = 4, dodge = .5)
+plot_model(modResSubsp, type = "int", dot.size = 4, dodge = .5)
+
+# by strains
+modResStrain <- glm.nb(peak.oocysts.per.g.mouse ~ infection_isolate*Mouse_genotype, 
+                 data = summaryDF108mice)
+anova(modResStrain, test = "LRT")
+# SIGNIF infection isolate (p-value = 0.01902) + interactions with mice (p-value = 8.432e-05)
+plot_model(modResStrain, type = "int", dot.size = 4, dodge = .5)
 
 ############
 ## Impact ##
 ############
+modImpSubsp <- survreg(Surv(impact)~Eimeria_species*Mouse_subspecies, data = summaryDF108mice, dist="weibull")
+anova(modImpSubsp) # Eimeria species AND mouse subspecies significant
+plot_model(modImpSubsp, type = "int",dot.size = 4, dodge = .5) 
 
 ## Translation of 1% because Weibull doesn't support nul data
-modImp <- survreg(Surv(impact)~infection_isolate*Mouse_genotype, data = ALL_summary_F0, dist="weibull")
-anova(modImp)
-length(ALL_summary_F0$relWL)
+modImpStrain <- survreg(Surv(impact)~infection_isolate*Mouse_genotype, data = summaryDF108mice, dist="weibull")
+anova(modImpStrain)
+length(summaryDF108mice$relWL)
 # Eimeria isolate significant
-
-## Plot
-plot_model(modImp, type = "int",dot.size = 4, dodge = .5)
-
-modImp2 <- survreg(Surv(impact)~Eimeria_species*Mouse_subspecies, data = ALL_summary_F0, dist="weibull")
-anova(modImp2) # Eimeria species AND mouse subspecies significant
-plot_model(modImp2, type = "int",dot.size = 4, dodge = .5) 
+plot_model(modImpStrain, type = "int",dot.size = 4, dodge = .5)
 
 ###############
 ## Tolerance ##
 ###############
 
-length(na.omit(ALL_summary_F0$tolerance))
-modTol <- lm(tolerance ~ infection_isolate*Mouse_genotype, data = ALL_summary_F0)
-anova(modTol)
-# mouse genotype & interactions significant
+modTolSubspecies <- lm(tolerance ~ Eimeria_species*Mouse_subspecies, data = summaryDF108mice)
+anova(modTolSubspecies)
+plot_model(modTolSubspecies, type = "int", dot.size = 4, dodge = .5)
 
-## Plot
+length(na.omit(summaryDF108mice$tolerance))
+modTolStrain <- lm(tolerance ~ infection_isolate*Mouse_genotype, data = summaryDF108mice)
+anova(modTolStrain)
+# mouse genotype & interactions significant
 plot_model(modTol, type = "int", dot.size = 4, dodge = .5)
 
-modTol2 <- lm(tolerance ~ Eimeria_species*Mouse_subspecies, data = ALL_summary_F0)
-anova(modTol2)
-plot_model(modTol2, type = "int", dot.size = 4, dodge = .5)
+#### PLOTS #####
 
-################################
-########## F1 mice ML ##########
-################################
+## To add Ns on top of bars
+getNs <- function(proxy, df, groupMus = "Mouse_genotype", groupPar = "infection_isolate"){
+  noNA = df[!is.na(df[[proxy]]),]
+  noNA$groupMus = noNA[[groupMus]]
+  noNA$groupPar = noNA[[groupPar]]
+  tab = table(noNA$groupPar, noNA$groupMus)
+  Ns = as.character(as.vector(t(tab)[as.vector(t(tab))!=0]))
+  return(Ns)
+}
 
-ALL_summary_F1$hybridLevel <- "hybrid"
-ALL_summary_F1$hybridLevel[ALL_summary_F1$HI<0.2] <- "outbred domesticus"
-ALL_summary_F1$hybridLevel[ALL_summary_F1$HI>0.8] <- "outbred musculus" 
-ALL_summary_F1$hybridLevel <- factor(ALL_summary_F1$hybridLevel, levels = c("outbred domesticus", "hybrid", "outbred musculus"))
+## Fig 3
 
-################
-## Resistance ##
-################
+# plot marginal effects of interaction terms
+posx.1 <- c(0.9,1.1, 1.9,2.1)
 
-ALL_summary_F1$Eimeria_species <- as.factor(ALL_summary_F1$Eimeria_species)
+## and plot
+plotR_F0_subsp <- plot_model(modResSubsp, type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
+  scale_color_manual(values = c("blue", "red"),
+                     name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
+  ggtitle("Resistance", subtitle = "low parasite burden = high resistance") +
+  scale_y_log10("(predicted) max parasite density", 
+                breaks = c(2000,5000, 10000, 20000, 50000, 100000,200000), 
+                labels = c(2,5, 10, 20, 50, 100,200))+
+  xlab("Eimeria species") +
+  theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
+  geom_text(aes(x=posx.1,y=3000,label=getNs("peak.oocysts.per.g.mouse", summaryDF108mice, 
+                                          "Mouse_subspecies", "Eimeria_species")), vjust=0) 
+plotR_F0_subsp
 
-# to fix the scaling issue
-hist(ALL_summary_F1$peak.oocysts.per.g.mouse, breaks = 100)
-hist(round(ALL_summary_F1$peak.oocysts.per.g.mouse/1000), breaks = 100)
+plotI_F0_subsp <- plot_model(modImpSubsp, type = "int",dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
+  scale_color_manual(values = c("blue","red"),
+                     name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
+  xlab("Eimeria species") +
+  ggtitle("Impact on host health") +
+  ylab("(predicted) maximum weight loss") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
+  theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
+  geom_text(aes(x=posx.1,y=0,label=getNs("relWL", summaryDF108mice,
+                                         "Mouse_subspecies", "Eimeria_species")),vjust=0)
+plotI_F0_subsp
 
-nrow(ALL_summary_F1[!is.na(ALL_summary_F1$peak.oocysts.per.g.mouse),])
-nrow(ALL_summary_F1[!is.na(ALL_summary_F1$peak.oocysts.per.g.mouse) & 
-                      ALL_summary_F1$Eimeria_species %in% "E.falciformis",])
-nrow(ALL_summary_F1[!is.na(ALL_summary_F1$peak.oocysts.per.g.mouse) & 
-                      ALL_summary_F1$Eimeria_species %in% "E.ferrisi",])
+plotT_F0_subsp <- plot_model(modTolSubspecies, type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
+  scale_color_manual(values = c("blue", "red"),
+                     name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
+  xlab("Eimeria species") +
+  ylab("(predicted) tolerance index")+
+  ggtitle("Tolerance", subtitle = "low values = high tolerance") +
+  theme(axis.title.x = element_text(hjust=1), axis.text = element_text(size=13))+
+  geom_text(aes(x=posx.1,y=0.2,label=getNs("tolerance", summaryDF108mice,
+                                           "Mouse_subspecies", "Eimeria_species")),vjust=0)
+plotT_F0_subsp
 
-ALL_summary_F1$peak.oocysts.per.g.mouse.div100 <- round(ALL_summary_F1$peak.oocysts.per.g.mouse/100)
+# Fig 3.
+Fig3 <- plot_grid(plotR_F0_subsp + theme(legend.position = "none"),
+                  plotI_F0_subsp + theme(legend.position = "none"),
+                  plotT_F0_subsp, 
+                  plotT_F0_subsp + theme(legend.position = "none"),
+                  labels=c("A", "B", "C", "D"), label_size = 20)
 
-## 1. discrete lm : test factors P & H & interactions
-modResF1 <- glm.nb(peak.oocysts.per.g.mouse ~ hybridLevel*Eimeria_species, data = ALL_summary_F1)
-anova(modResF1, test = "LRT") # eimeria, host, inter signif
+Fig3
 
-plot_model(modResF1, type = "int", dot.size = 4, dodge = .5,
-                      colors = c("orange", "darkgreen"), title = "Resistance")
+pdf(file = "../figures/Fig3.pdf",
+    width = 9, height = 9)
+Fig3
+dev.off()
 
-## 2. continuous ML : test HV
-fitRes <- parasiteLoad::analyse(data = ALL_summary_F1,
-                                response = "peak.oocysts.per.g.mouse.div100", 
-                                group = "Eimeria_species", model = "negbin")
+## Fig 4
 
-# [1] "Testing H0 no alpha vs alpha"
-# dLL dDF     pvalue
-# 1 2.58   1 0.02318184
-# [1] "Testing H1 no alpha vs alpha"
-# dLL dDF    pvalue
-# 1 2.69   1 0.0202649
-# [1] "Testing H2 groupA no alpha vs alpha"
-# dLL dDF     pvalue
-# 1 1.92   1 0.04995505
-# [1] "Testing H2 groupB no alpha vs alpha"
-# dLL dDF    pvalue
-# 1 1.29   1 0.1082959
-# [1] "Testing H3 groupA no alpha vs alpha"
-# dLL dDF    pvalue
-# 1 1.53   1 0.0801773
-# [1] "Testing H3 groupB no alpha vs alpha"
-# dLL dDF   pvalue
-# 1 1.15   1 0.128581
-# [1] "Testing H1 vs H0"
-# dLL dDF    pvalue
-# 1 0.57   2 0.5683046
-# [1] "Testing H2 vs H0"
-# dLL dDF     pvalue
-# 1 5.21   4 0.03405811
-# [1] "Testing H3 vs H1"
-# dLL dDF     pvalue
-# 1 8.67   6 0.00810378
-# [1] "Testing H3 vs H2"
-# dLL dDF     pvalue
-# 1 4.03   4 0.08931408
+# plot marginal effects of interaction terms
+posx <- c(0.8+c(0,1/8,2/8,3/8),1.8+c(0,1/8,2/8,3/8),2.8+c(0,1/8,2/8,3/8))
 
-coef(fitRes$H1)
-# L1          L2          A1          A2       alpha           Z 
-# 746.7278613 629.2621833   0.6075115   0.9480888   0.7319809  -0.8364519 
+## and plot
+plotR_F0 <- plot_model(modResStrain, type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
+  scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
+                     name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
+  ggtitle("Resistance", subtitle = "low parasite burden = high resistance") +
+  scale_y_log10("(predicted) max parasite density", 
+                breaks = c(2000,5000, 10000, 20000, 50000, 100000,200000), 
+                labels = c(2,5, 10, 20, 50, 100,200))+
+  xlab("Eimeria isolate") +
+  theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
+  geom_text(aes(x=posx,y=3000,label=getNs("peak.oocysts.per.g.mouse", summaryDF108mice)),vjust=0) 
+plotR_F0
 
-# to plot on axis
-scaleOO <- c(50, 100, 200, 500, 1000, 3000)
+plotI_F0 <- plot_model(modImpStrain, type = "int",dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
+  scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
+                     name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
+  xlab("Eimeria isolate") +
+  ggtitle("Impact on host health") +
+  ylab("(predicted) maximum weight loss") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
+  theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
+  geom_text(aes(x=posx,y=0,label=getNs("relWL", summaryDF108mice)),vjust=0)
+plotI_F0
 
-parasiteLoad::bananaPlot(mod = fitRes$H1,
-                                        data = ALL_summary_F1,
-                                        response = "peak.oocysts.per.g.mouse.div100",
-                                        islog10 = T, group = "Eimeria_species",
-                                        cols = c("orange", "darkgreen")) + theme_bw() +
-  ylab("Maximum parasite load (oocysts) per mouse gram") +
-  xlab("Hybrid index") +
-  scale_y_log10(breaks=scaleOO, labels = format(scaleOO*100, scientific = TRUE))+
-  theme(axis.title.x = element_text(hjust=1), axis.text = element_text(size=13))
+plotT_F0 <- plot_model(modTolStrain, type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
+  scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
+                     name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
+  xlab("Eimeria isolate") +
+  ylab("(predicted) tolerance index")+
+  ggtitle("Tolerance", subtitle = "low values = high tolerance") +
+  theme(axis.title.x = element_text(hjust=1), axis.text = element_text(size=13))+
+  geom_text(aes(x=posx,y=0.2,label=getNs("tolerance", summaryDF108mice)),vjust=0)
+plotT_F0
 
-coef(fitRes$H3$groupA)
-# L1          L2          A1          A2       alpha           Z 
-# 888.4995253 235.4619325   0.8652611   0.6782603   0.8651792  -1.0900823 
+Fig4 <- plot_grid(plotR_F0 + theme(legend.position = "none"),
+                  plotI_F0 + theme(legend.position = "none"),
+                  plotT_F0, 
+                  plotT_F0 + theme(legend.position = "none"),
+                  labels=c("A", "B", "C", "D"), label_size = 20)
 
-coef(fitRes$H3$groupB)
-# L1          L2          A1          A2       alpha           Z 
-# 642.9575588 891.7035835   0.2169692   0.6284915   0.5955537  -0.1252396 
+Fig4
 
-parasiteLoad::bananaPlot(mod = fitRes$H3,
-                                        data = ALL_summary_F1,
-                                        response = "peak.oocysts.per.g.mouse.div100",
-                                        islog10 = T, group = "Eimeria_species",
-                                        cols = c("orange", "darkgreen"))
+pdf(file = "../figures/Fig4.pdf",
+    width = 9, height = 9)
+Fig4
+dev.off()
 
-######################
-## Impact on health ##
-######################
+## FINAL test impact of anthelminthics on our 3 variables
+summaryDF108mice$anth
 
-nrow(ALL_summary_F1[!is.na(ALL_summary_F1$impact),])
-nrow(ALL_summary_F1[!is.na(ALL_summary_F1$impact) & 
-                      ALL_summary_F1$Eimeria_species %in% "E.falciformis",])
-nrow(ALL_summary_F1[!is.na(ALL_summary_F1$impact) & 
-                      ALL_summary_F1$Eimeria_species %in% "E.ferrisi",])
+mresanth <- glm.nb(peak.oocysts.per.g.mouse ~ anth * infection_isolate*Mouse_genotype, data = summaryDF108mice)
+anova(mresanth, test = "LRT")
 
-## 1. discrete lm : test factors P & H & interactions
-modImpF1 <- survreg(Surv(impact)~ hybridLevel*Eimeria_species, data = ALL_summary_F1, dist="weibull")
-anova(modImpF1) # Eimeria signif. 0.022
-plot_model(modImpF1, type = "int", dot.size = 4, dodge = .5, 
-           colors = c("orange", "darkgreen"), title = "Impact on host health") 
+mimpanth <- survreg(Surv(impact)~anth *infection_isolate*Mouse_genotype, data = summaryDF108mice, dist="weibull")
+anova(mimpanth)
 
-## 2. discrete lm : test HV
-modImpF1 <- survreg(Surv(impact)~ hybridLevel*Eimeria_species, data = ALL_summary_F1, dist="weibull")
-
-modResF1_fal <- survreg(Surv(impact)~ hybridLevel*Eimeria_species,  dist="weibull",
-                        data = ALL_summary_F1[ALL_summary_F1$Eimeria_species %in% "E.falciformis",])
-anova(modResF1_fal) # no signif
-
-modResF1_fer <- survreg(Surv(impact)~ hybridLevel*Eimeria_species,  dist="weibull",
-                        data = ALL_summary_F1[ALL_summary_F1$Eimeria_species %in% "E.ferrisi",])
-anova(modResF1_fer) # no signif
-
-## 3. continuous ML : test HV
-fitImp <- parasiteLoad::analyse(data = ALL_summary_F1,
-                                response = "impact", 
-                                group = "Eimeria_species", model = "weibull")
-
-# [1] "Testing H0 no alpha vs alpha"
-# dLL dDF     pvalue
-# 1 1.94   1 0.04914124
-# [1] "Testing H1 no alpha vs alpha"
-# dLL dDF     pvalue
-# 1 1.79   1 0.05840147
-# [1] "Testing H2 groupA no alpha vs alpha"
-# dLL dDF     pvalue
-# 1 1.58   1 0.07533839
-# [1] "Testing H2 groupB no alpha vs alpha"
-# dLL dDF    pvalue
-# 1 0.26   1 0.4702023
-# [1] "Testing H3 groupA no alpha vs alpha"
-# dLL dDF    pvalue
-# 1 1.62   1 0.0720455
-# [1] "Testing H3 groupB no alpha vs alpha"
-# dLL dDF    pvalue
-# 1 0.12   1 0.6177118
-# [1] "Testing H1 vs H0"
-# dLL dDF    pvalue
-# 1 0.66   1 0.2509531
-# [1] "Testing H2 vs H0"
-# dLL dDF  pvalue
-# 1 2.63   3 0.15408
-# [1] "Testing H3 vs H1"
-# dLL dDF    pvalue
-# 1 3.14   4 0.1789046
-# [1] "Testing H3 vs H2"
-# dLL dDF    pvalue
-# 1 1.17   2 0.3091788
-
-coef(fitImp$H1)
-# L1         L2      alpha    myshape 
-# 0.07698095 0.10305627 0.58406414 1.46473120 
-
-parasiteLoad::bananaPlot(mod = fitImp$H1,
-                                        data = ALL_summary_F1,
-                                        response = "impact",
-                                        islog10 = F, group = "Eimeria_species",
-                                        cols = c("orange", "darkgreen")) + theme_bw() +
-  ylab("Impact") +
-  xlab("Hybrid index") +
-  theme(axis.title.x = element_text(hjust=1), axis.text = element_text(size=13))
-
-coef(fitImp$H3$groupA)
-# L1         L2      alpha    myshape 
-# 0.09544317 0.13216564 0.73310201 1.54840752 
-
-coef(fitImp$H3$groupB)
-# L1         L2      alpha    myshape 
-# 0.05095116 0.07761396 0.22188069 1.55068685 
-
-parasiteLoad::bananaPlot(mod = fitImp$H3,
-                                        data = ALL_summary_F1,
-                                        response = "impact",
-                                        islog10 = F, group = "Eimeria_species",
-                                        cols = c("orange", "darkgreen")) 
-###############
-## Tolerance ##
-###############
-nrow(ALL_summary_F1[!is.na(ALL_summary_F1$tolerance),])
-nrow(ALL_summary_F1[!is.na(ALL_summary_F1$tolerance) & 
-                      ALL_summary_F1$Eimeria_species %in% "E.falciformis",])
-nrow(ALL_summary_F1[!is.na(ALL_summary_F1$tolerance) & 
-                      ALL_summary_F1$Eimeria_species %in% "E.ferrisi",])
-
-## 1. discrete lm : test factors P & H & interactions
-modTolF1 <- lm(tolerance ~  hybridLevel*Eimeria_species, data = ALL_summary_F1)
-anova(modTolF1) # eimeria signif 0.039
-plot_model(modTolF1, type = "int", dot.size = 4, dodge = .5, 
-           colors = c("orange", "darkgreen"), title = "Tolerance") 
-
-## 2. discrete lm : test HV
-modTolF1_fal <- lm(tolerance ~  hybridLevel,
-                   data = ALL_summary_F1[ALL_summary_F1$Eimeria_species %in% "E.falciformis",])
-anova(modTolF1_fal) # no signif
-
-modTolF1_fer <- lm(tolerance ~  hybridLevel,
-                   data = ALL_summary_F1[ALL_summary_F1$Eimeria_species %in% "E.ferrisi",])
-anova(modTolF1_fer) # no signif
-
-## 3. continuous ML : test HV
-fitTol <- parasiteLoad::analyse(data = ALL_summary_F1,
-                                response = "tolerance", 
-                                group = "Eimeria_species", model = "normal")
-
-# [1] "Testing H0 no alpha vs alpha"
-# dLL dDF    pvalue
-# 1 0.18   1 0.5476505
-# [1] "Testing H1 no alpha vs alpha"
-# dLL dDF    pvalue
-# 1 0.16   1 0.5765093
-# [1] "Testing H2 groupA no alpha vs alpha"
-# dLL dDF    pvalue
-# 1 0.3   1 0.4393456
-# [1] "Testing H2 groupB no alpha vs alpha"
-# dLL dDF    pvalue
-# 1   0   1 0.9983804
-# [1] "Testing H3 groupA no alpha vs alpha"
-# dLL dDF    pvalue
-# 1 0.5   1 0.3174401
-# [1] "Testing H3 groupB no alpha vs alpha"
-# dLL dDF    pvalue
-# 1 0.05   1 0.7523796
-# [1] "Testing H1 vs H0"
-# dLL dDF     pvalue
-# 1 2.68   1 0.02067993
-# [1] "Testing H2 vs H0"
-# dLL dDF    pvalue
-# 1 2.4   3 0.1867651
-# [1] "Testing H3 vs H1"
-# dLL dDF    pvalue
-# 1 3.55   4 0.1303202
-# [1] "Testing H3 vs H2"
-# dLL dDF     pvalue
-# 1 3.83   2 0.02173701
-
-coef(fitTol$H1)
-# L1          L2       alpha        mysd 
-# 6.42333772  5.65680781 -0.04236129  0.86514631 
-
-parasiteLoad::bananaPlot(mod = fitTol$H1,
-                                        data = ALL_summary_F1,
-                                        response = "tolerance",
-                                        islog10 = F, group = "Eimeria_species",
-                                        cols = c("orange", "darkgreen"))
-
-coef(fitTol$H3$groupA)
-# L1         L2      alpha       mysd 
-# 6.1448290  5.1919438 -0.1252122  0.9120794
-
-coef(fitTol$H3$groupB)
-# L1         L2      alpha       mysd 
-# 6.79413631 5.96694171 0.02684156 0.73549792
-
-
-parasiteLoad::bananaPlot(mod = fitTol$H3,
-                                        data = ALL_summary_F1,
-                                        response = "tolerance",
-                                        islog10 = F, group = "Eimeria_species",
-                                        cols = c("orange", "darkgreen")) 
-
-################ The end ################ 
+mtolanth <- lm(tolerance ~ anth*infection_isolate*Mouse_genotype, data = summaryDF108mice)
+anova(mtolanth)
