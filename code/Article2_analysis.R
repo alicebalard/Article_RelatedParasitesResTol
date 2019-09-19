@@ -131,6 +131,13 @@ Fig2 <- plot_grid(F2.1, F2.2,
 Fig2
 #dev.off()
 
+## Correlation sum of oocysts / peak oocysts
+ggplot(summaryDF108mice, aes(sumoocysts.per.tube, max.oocysts.per.tube)) + 
+  geom_smooth(method = "lm")+ geom_point()
+
+cor(summaryDF108mice$sumoocysts.per.tube , summaryDF108mice$max.oocysts.per.tube,
+    method = "pearson")
+
 #################################################
 ########## Chose correct distributions ##########
 #################################################
@@ -194,6 +201,12 @@ anova(modResStrain, test = "LRT")
 # SIGNIF infection isolate (p-value = 0.01902) + interactions with mice (p-value = 8.432e-05)
 plot_model(modResStrain, type = "int", dot.size = 4, dodge = .5)
 
+## TEST WITHOUT COINF BATCHES --> same direction
+# bonusmod <- glm.nb(peak.oocysts.per.g.mouse ~ Eimeria_species*Mouse_subspecies, 
+#                    data = summaryDF108mice[!summaryDF108mice$batch %in% c("B5", "B6"),])
+# anova(bonusmod)
+# plot_model(bonusmod, type = "int", dot.size = 4, dodge = .5) + scale_y_log10()
+
 ############
 ## Impact ##
 ############
@@ -207,6 +220,13 @@ anova(modImpStrain)
 length(summaryDF108mice$relWL)
 # Eimeria isolate significant
 plot_model(modImpStrain, type = "int",dot.size = 4, dodge = .5)
+
+## TEST WITHOUT COINF BATCHES --> same direction
+# bonusmod <- survreg(Surv(impact)~Eimeria_species*Mouse_subspecies, 
+#                     data = summaryDF108mice[!summaryDF108mice$batch %in% c("B5", "B6"),],
+#                     dist="weibull")
+# anova(bonusmod) 
+# plot_model(bonusmod, type = "int",dot.size = 4, dodge = .5) 
 
 ###############
 ## Tolerance ##
@@ -222,7 +242,13 @@ anova(modTolStrain)
 # mouse genotype & interactions significant
 plot_model(modTol, type = "int", dot.size = 4, dodge = .5)
 
-#### PLOTS #####
+## TEST WITHOUT COINF BATCHES --> same direction
+bonusmod <-  lm(tolerance ~ Eimeria_species*Mouse_subspecies,
+                data = summaryDF108mice[!summaryDF108mice$batch %in% c("B5", "B6"),])#                     dist="weibull")
+anova(bonusmod)
+plot_model(bonusmod, type = "int",dot.size = 4, dodge = .5)
+
+  #### PLOTS #####
 
 ## To add Ns on top of bars
 getNs <- function(proxy, df, groupMus = "Mouse_genotype", groupPar = "infection_isolate"){
@@ -345,11 +371,19 @@ dev.off()
 ## FINAL test impact of anthelminthics on our 3 variables
 summaryDF108mice$anth
 
-mresanth <- glm.nb(peak.oocysts.per.g.mouse ~ anth * infection_isolate*Mouse_genotype, data = summaryDF108mice)
+mresanth <- glm.nb(peak.oocysts.per.g.mouse ~ anth + infection_isolate*Mouse_genotype, data = summaryDF108mice)
 anova(mresanth, test = "LRT")
 
-mimpanth <- survreg(Surv(impact)~anth *infection_isolate*Mouse_genotype, data = summaryDF108mice, dist="weibull")
+mimpanth <- survreg(Surv(impact)~anth +infection_isolate*Mouse_genotype, data = summaryDF108mice, dist="weibull")
 anova(mimpanth)
 
-mtolanth <- lm(tolerance ~ anth*infection_isolate*Mouse_genotype, data = summaryDF108mice)
+mtolanth <- lm(tolerance ~ anth + infection_isolate*Mouse_genotype, data = summaryDF108mice)
 anova(mtolanth)
+
+# contamination
+coinfMice <- rawDF108mice[rawDF108mice$dpi %in% 0 & rawDF108mice$oocysts.per.tube > 0 &
+                            !is.na(rawDF108mice$oocysts.per.tube), ]
+nrow(coinfMice) # 9 mice
+table(coinfMice$Mouse_strain, coinfMice$infection_isolate)
+
+summaryDF108mice[summaryDF108mice$EH_ID %in% coinfMice$EH_ID,]
