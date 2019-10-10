@@ -387,3 +387,15 @@ nrow(coinfMice) # 9 mice
 table(coinfMice$Mouse_strain, coinfMice$infection_isolate)
 
 summaryDF108mice[summaryDF108mice$EH_ID %in% coinfMice$EH_ID,]
+
+### Second part: correlation resistance / tolerance
+
+summaryDF108mice$tolerance
+peak.oocysts.per.g.mouse
+
+ggplot(summaryDF108mice, aes(x = peak.oocysts.per.g.mouse, y = tolerance, 
+                             fill = Mouse_genotype, col = infection_isolate)) +
+  geom_point(pch=21, size = 4) +
+  facet_grid(.~infection_isolate) +
+  scale_color_manual(values = c("orange", "orange1", "green"))+
+  scale_fill_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"))
