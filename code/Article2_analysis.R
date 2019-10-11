@@ -390,12 +390,43 @@ summaryDF108mice[summaryDF108mice$EH_ID %in% coinfMice$EH_ID,]
 
 ### Second part: correlation resistance / tolerance
 
-summaryDF108mice$tolerance
-peak.oocysts.per.g.mouse
+# summaryDF108mice$tolerance: low values = high tolerance. Normal distrib.
+# summaryDF108mice$peak.oocysts.per.g.mouse: low values = high resistance. NegBin, so we scalelog10
 
-ggplot(summaryDF108mice, aes(x = peak.oocysts.per.g.mouse, y = tolerance, 
-                             fill = Mouse_genotype, col = infection_isolate)) +
-  geom_point(pch=21, size = 4) +
-  facet_grid(.~infection_isolate) +
-  scale_color_manual(values = c("orange", "orange1", "green"))+
-  scale_fill_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"))
+summaryDF108mice$ResPos = -summaryDF108mice$peak.oocysts.per.g.mouse + max(summaryDF108mice$peak.oocysts.per.g.mouse, na.rm = T)
+summaryDF108mice$TolPos = - summaryDF108mice$tolerance + max(summaryDF108mice$tolerance, na.rm = T)
+
+# Calculate mean per group
+# Packages we need
+library(ggplot2)
+library(dplyr)
+
+# Create a group-means data set
+gd <- summaryDF108mice %>% 
+  group_by(Mouse_genotype, infection_isolate) %>% 
+  summarise(
+    ResPos = mean(ResPos, na.rm = T),
+    TolPos = mean(TolPos, na.rm = T)
+  )
+
+gd
+
+# define the 8 groups
+summaryDF108mice$group <- paste(summaryDF108mice$Mouse_genotype, summaryDF108mice$infection_isolate, sep = "_")
+
+# Plot both data sets
+restolplot <- ggplot(summaryDF108mice, aes(x = ResPos, y = TolPos)) +
+  geom_smooth(method = "lm", col = "black", alpha = .1, aes(linetype = Eimeria_species)) +
+  geom_point(alpha = .4, aes(color = Mouse_genotype, shape = infection_isolate), size = 4) +
+  geom_point(data = gd, aes(color = Mouse_genotype, shape = infection_isolate), size = 10) +
+  scale_x_log10()+
+  theme_bw()+
+  scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
+  scale_shape_manual(values = c(15,16,10)) 
+
+restolplot  
+
+modResTol <- lm(formula = TolPos ~ ResPos * Eimeria_species, data = summaryDF108mice)
+
+anova(modResTol)
+# ResPos:Eimeria_species  1 14.475 14.4747 21.0096 1.39e-05 ***
