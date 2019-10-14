@@ -36,6 +36,14 @@ dev.off()
 
 # full data
 rawDF108mice <- DF_all[grep("F0", DF_all$Mouse_genotype),]
+
+# calculate weight retained per day
+d <- rawDF108mice[rawDF108mice$dpi == 0., c("weight", "EH_ID")]
+names(d)[1] <- "weightdpi0"
+rawDF108mice <- merge(d, rawDF108mice)
+rawDF108mice$weightRelativeToInfection <- rawDF108mice$weight / rawDF108mice$weightdpi0 * 100
+
+# Rename levels
 length(unique(rawDF108mice$EH_ID))
 levels(rawDF108mice$infection_isolate) <- c("Brandenburg139 (E. ferrisi)",
                                             "Brandenburg64 (E. ferrisi)", "Brandenburg88 (E. falciformis)")
@@ -430,3 +438,37 @@ modResTol <- lm(formula = TolPos ~ ResPos * Eimeria_species, data = summaryDF108
 
 anova(modResTol)
 # ResPos:Eimeria_species  1 14.475 14.4747 21.0096 1.39e-05 ***
+
+
+# Some toy
+rawDF108mice$oocysts.per.g.mouse <- rawDF108mice$oocysts.per.tube / rawDF108mice$weight
+
+ggplot(rawDF108mice, aes(x = oocysts.per.g.mouse, y =relativeWeight,
+                         color = Mouse_genotype, shape = infection_isolate, fill = infection_isolate)) +
+  geom_smooth(method = "lm")+
+  # geom_point() +
+  # scale_x_log10()+
+  theme_bw()+
+  scale_fill_manual(values = c(1,2,3)) +
+  scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
+  scale_shape_manual(values = c(15,16,10)) 
+  
+# Bonus: Disease trajectory?
+
+# NB quite a bunch of animals died before end
+
+infDF <- rawDF108mice %>%
+  dplyr::group_by(Mouse_genotype, infection_isolate, dpi)%>%
+  dplyr::summarise(meanOO = mean(oocysts.per.tube, na.rm = T),
+                   meanWR = mean(weightRelativeToInfection, na.rm = T)) %>%
+  as.data.frame()
+
+infDF$group <- paste(infDF$Mouse_genotype, infDF$infection_isolate, sep = "_")
+
+ggplot(infDF, aes(x = meanOO , y =meanWR, col = as.factor(dpi), group = group)) +
+  geom_point() + 
+  geom_path() +
+  facet_grid(infection_isolate~Mouse_genotype) +
+  scale_x_log10() +
+  geom_label(aes(label = dpi))
+
