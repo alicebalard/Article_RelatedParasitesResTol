@@ -423,17 +423,21 @@ gd
 summaryDF108mice$group <- paste(summaryDF108mice$Mouse_genotype, summaryDF108mice$infection_isolate, sep = "_")
 
 # Plot both data sets
-restolplot <- ggplot(summaryDF108mice, aes(x = ResPos, y = TolPos)) +
-  geom_smooth(method = "lm", col = "black", alpha = .1, aes(linetype = Eimeria_species)) +
-  geom_point(alpha = .4, aes(color = Mouse_genotype, shape = infection_isolate), size = 4) +
-  geom_point(data = gd, aes(color = Mouse_genotype, shape = infection_isolate), size = 10) +
-  scale_x_log10()+
+restolplot <-ggplot(summaryDF108mice, aes(x = ResPos, y = TolPos)) +
+  geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = Eimeria_species)) +
+  geom_point(alpha = .4, aes(col = Mouse_genotype, fill = Mouse_genotype, shape = infection_isolate), size = 4) +
+  geom_point(data = gd, aes(fill = Mouse_genotype, shape = infection_isolate), size = 10) +
   theme_bw()+
   scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
-  scale_shape_manual(values = c(15,16,10)) 
+  scale_fill_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
+  scale_shape_manual(values = c(24,22,21)) +
+  ylab(label = "Tolerance index") +
+  scale_x_continuous(name = "Resistance index", labels = 0:3)
 
+pdf("../figures/Fig5.pdf", width = 12, height = 9)
 restolplot  
-
+dev.off()
+  
 modResTol <- lm(formula = TolPos ~ ResPos * Eimeria_species, data = summaryDF108mice)
 
 anova(modResTol)
@@ -470,5 +474,28 @@ ggplot(infDF, aes(x = meanOO , y =meanWR, col = as.factor(dpi), group = group)) 
   geom_path() +
   facet_grid(infection_isolate~Mouse_genotype) +
   scale_x_log10() +
+  geom_hline(yintercept = 100) +
   geom_label(aes(label = dpi))
+    
 
+
+
+##### NEW!! DEFINE resistance/tolerance indexes ##### 
+summaryDF108mice$ResistanceIndex <- -summaryDF108mice$peak.oocysts.per.g.mouse + max(summaryDF108mice$peak.oocysts.per.g.mouse, na.rm = T)
+
+hist(summaryDF108mice$peak.oocysts.per.g.mouse, breaks = 100)
+
+x = log10(summaryDF108mice$peak.oocysts.per.g.mouse)
+x = as.numeric(na.omit(x))
+descdist(x)
+descdist(na.omit(x))
+
+# Calculate tolerance (inverse)
+ALL_summary$invtolerance <- ALL_summary$relWL / ALL_summary$peak.oocysts.per.g.mouse
+# summaryDF108mice$tolerance: low values = high tolerance. Normal distrib.
+# summaryDF108mice$peak.oocysts.per.g.mouse: low values = high resistance. NegBin, so we scalelog10
+
+summaryDF108mice$TolPos = - summaryDF108mice$tolerance + max(summaryDF108mice$tolerance, na.rm = T)
+
+summaryDF108mice$ToleranceIndex <- log10(summaryDF108mice$invtolerance+translation) + 8
+##### 
