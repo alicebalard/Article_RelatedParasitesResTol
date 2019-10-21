@@ -203,8 +203,12 @@ dev.off()
 ################
 # Mmd vs Mmm
 modResSubsp <- glm.nb(peak.oocysts.per.g.mouse ~ Eimeria_species*Mouse_subspecies, data = summaryDF108mice)
+
+modResSubsp
 anova(modResSubsp)
 # SIGNIF infection isolate (p-value = 0.02236) + interactions with mice (p-value = 6.52e-07)
+
+summary(modResSubsp)
 
 # by strains
 modResStrain <- glm.nb(peak.oocysts.per.g.mouse ~ infection_isolate*Mouse_genotype, 
@@ -267,6 +271,7 @@ plotR_F0_strains
 ############
 modImpSubsp <- survreg(Surv(impact)~Eimeria_species*Mouse_subspecies, data = summaryDF108mice, dist="weibull")
 anova(modImpSubsp) # Eimeria species AND mouse subspecies significant
+
 
 ## Translation of 1% because Weibull doesn't support nul data
 modImpStrain <- survreg(Surv(impact)~infection_isolate*Mouse_genotype, data = summaryDF108mice, dist="weibull")
@@ -356,6 +361,15 @@ pdf(file = "../figures/Fig4.pdf",
 Fig4
 dev.off()
 
+# Pretty table outputs
+
+
+stargazer(modResSubsp, modImpSubsp, modTolSubspecies)#,  type = "html")
+stargazer(modResStrain, modImpStrain, modTolStrain,  type = "html")
+
+
+
+  
 ### Second part: correlation resistance / tolerance
 
 # Calculate mean per group

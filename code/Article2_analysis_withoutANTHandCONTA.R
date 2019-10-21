@@ -58,20 +58,46 @@ sumDFnoANTHnoCONTA <- sumDFnoANTH[!sumDFnoANTH$EH_ID %in% contaAnimals,]
 # Mmd vs Mmm
 modResSubsp <- glm.nb(peak.oocysts.per.g.mouse ~ Eimeria_species*Mouse_subspecies, data = sumDFnoANTHnoCONTA)
 anova(modResSubsp)
-# Eimeria_species                   1   3.5644        66     94.419  0.05903 .  
-# Mouse_subspecies                  1   3.2843        65     91.135  0.06994 .  
-# Eimeria_species:Mouse_subspecies  1  17.2365        64     73.898  3.3e-05 ***
-  
-plot_model(modResSubsp, type = "int", dot.size = 4, dodge = .5)
+length(na.omit(sumDFnoANTHnoCONTA$peak.oocysts.per.g.mouse))
+
+# plot marginal effects of interaction terms
+posx.1 <- c(0.9,1.1, 1.9,2.1)
+
+## FOR PLOT, use Resistance Index 
+y = seq(0,1,0.05)
+x = -y * 300000 + 300000
+plot_model(modResSubsp, type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
+  scale_color_manual(values = c("blue", "red"),
+                     name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
+  ggtitle("Resistance") +
+  scale_y_continuous("(predicted) Resistance Index",
+                     trans = "reverse",
+                     breaks = x,
+                     labels = y) +
+  xlab("Eimeria species") +
+  theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
+  geom_text(aes(x=posx.1,y=100000,label=getNs("peak.oocysts.per.g.mouse", sumDFnoANTHnoCONTA, 
+                                             "Mouse_subspecies", "Eimeria_species")), vjust=0) 
 
 ############
 ## Impact ##
 ############
 sumDFnoANTHnoCONTA$impact <- sumDFnoANTHnoCONTA$relWL +0.01
+length(na.omit(sumDFnoANTHnoCONTA$impact))
 
 modImpSubsp <- survreg(Surv(impact)~Eimeria_species*Mouse_subspecies, data = sumDFnoANTHnoCONTA, dist="weibull")
 anova(modImpSubsp) # Eimeria species AND mouse subspecies significant
 plot_model(modImpSubsp, type = "int",dot.size = 4, dodge = .5) 
+plot_model(modImpSubsp, type = "int",dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
+  scale_color_manual(values = c("blue","red"),
+                     name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
+  xlab("Eimeria species") +
+  ggtitle("Impact on host health") +
+  ylab("(predicted) maximum weight loss") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
+  theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
+  geom_text(aes(x=posx.1,y=0,label=getNs("relWL", sumDFnoANTHnoCONTA,
+                                         "Mouse_subspecies", "Eimeria_species")),vjust=0)
 
 ###############
 ## Tolerance ##
@@ -81,8 +107,20 @@ sumDFnoANTHnoCONTA$ToleranceIndex <- log10(
 
 modTolSubspecies <- lm(ToleranceIndex ~ Eimeria_species*Mouse_subspecies, data = sumDFnoANTHnoCONTA)
 anova(modTolSubspecies)
+length(na.omit(sumDFnoANTHnoCONTA$ToleranceIndex))
+
 
 plot_model(modTolSubspecies, type = "int", dot.size = 4, dodge = .5)
+plot_model(modTolSubspecies, type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
+  scale_color_manual(values = c("blue", "red"),
+                     name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
+  xlab("Eimeria species") +
+  ylab("(predicted) Tolerance index")+
+  ggtitle("Tolerance") +
+  theme(axis.title.x = element_text(hjust=1), axis.text = element_text(size=13))+
+  geom_text(aes(x=posx.1,y=0.4,label=getNs("ToleranceIndex", sumDFnoANTHnoCONTA,
+                                           "Mouse_subspecies", "Eimeria_species")),vjust=0)
+
 
 # mouse genotype & interactions significant (& EIMERIA)
 
