@@ -206,6 +206,9 @@ modResSubsp <- glm.nb(peak.oocysts.per.g.mouse ~ Eimeria_species*Mouse_subspecie
 
 modResSubsp
 anova(modResSubsp)
+summary(modResSubsp)
+a <- aov(modResSubsp)
+summary.lm(a)
 # SIGNIF infection isolate (p-value = 0.02236) + interactions with mice (p-value = 6.52e-07)
 
 summary(modResSubsp)
