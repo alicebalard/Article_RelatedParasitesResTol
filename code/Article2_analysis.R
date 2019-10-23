@@ -365,14 +365,9 @@ Fig4
 dev.off()
 
 # Pretty table outputs
-
-
 stargazer(modResSubsp, modImpSubsp, modTolSubspecies)#,  type = "html")
 stargazer(modResStrain, modImpStrain, modTolStrain,  type = "html")
 
-
-
-  
 ### Second part: correlation resistance / tolerance
 
 # Calculate mean per group
@@ -385,6 +380,7 @@ gd <- summaryDF108mice %>%
   group_by(Mouse_genotype, infection_isolate) %>% 
   summarise(
     ResistanceIndex = mean(ResistanceIndex, na.rm = T),
+    Impact = mean(impact, na.rm=T),
     ToleranceIndex = mean(ToleranceIndex, na.rm = T)
   )
 
@@ -460,4 +456,5 @@ ggplot(infDF, aes(x = meanOO , y =meanWR, col = as.factor(dpi), group = group)) 
   scale_x_log10() +
   geom_hline(yintercept = 100) +
   geom_label(aes(label = dpi))
-    
+
+
