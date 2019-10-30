@@ -365,8 +365,9 @@ Fig4
 dev.off()
 
 # Pretty table outputs
-stargazer(modResSubsp, modImpSubsp, modTolSubspecies)#,  type = "html")
-stargazer(modResStrain, modImpStrain, modTolStrain,  type = "html")
+# library(stargazer)
+# stargazer(modResSubsp, modImpSubsp, modTolSubspecies)#,  type = "html")
+# stargazer(modResStrain, modImpStrain, modTolStrain,  type = "html")
 
 ### Second part: correlation resistance / tolerance
 
@@ -376,12 +377,14 @@ library(ggplot2)
 library(dplyr)
 
 # Create a group-means data set
-gd <- summaryDF108mice %>% 
+gd <- summaryDF108mice %>%
   group_by(Mouse_genotype, infection_isolate) %>% 
   summarise(
-    ResistanceIndex = mean(ResistanceIndex, na.rm = T),
+    ResistanceIndexMean = mean(ResistanceIndex, na.rm = T),
+    ResistanceIndexSd = sd(ResistanceIndex, na.rm = T),
     Impact = mean(impact, na.rm=T),
-    ToleranceIndex = mean(ToleranceIndex, na.rm = T)
+    ToleranceIndexMean = mean(ToleranceIndex, na.rm = T),
+    ToleranceIndexSd = sd(ToleranceIndex, na.rm = T)
   )
 
 gd
@@ -393,7 +396,8 @@ summaryDF108mice$group <- paste(summaryDF108mice$Mouse_genotype, summaryDF108mic
 restolplot <- ggplot(summaryDF108mice, aes(x = ResistanceIndex, y = ToleranceIndex)) +
   geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = Eimeria_species)) +
   geom_point(alpha = .4, aes(col = Mouse_genotype, fill = Mouse_genotype, shape = infection_isolate), size = 4) +
-  geom_point(data = gd, aes(fill = Mouse_genotype, shape = infection_isolate), size = 10) +
+  geom_point(data = gd, aes(x = ResistanceIndexMean, y = ToleranceIndexMean,
+                            fill = Mouse_genotype, shape = infection_isolate), size = 10) +
   theme_bw()+
   scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
   scale_fill_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
@@ -422,6 +426,25 @@ library(lsmeans)
 emtrends(modResTol, ~ Eimeria_species, var="ResistanceIndex")
 
 # The 95% confidence interval does not contain zero for females but contains zero for males, so the simple slope is significant for females but not for males.
+
+# plot with sd 
+ggplot(summaryDF108mice, aes(x = ResistanceIndex, y = ToleranceIndex)) +
+  geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = Eimeria_species)) +
+  geom_point(alpha = .4, aes(col = Mouse_genotype, fill = Mouse_genotype, shape = infection_isolate), size = 4) +
+  geom_point(data = gd, aes(x = ResistanceIndexMean, y = ToleranceIndexMean,
+                            fill = Mouse_genotype, shape = infection_isolate), size = 10) +
+  geom_errorbar(data = gd, aes(x = ResistanceIndexMean, y = ToleranceIndexMean, col = Mouse_genotype,
+                               ymin = ToleranceIndexMean - ToleranceIndexSd, 
+                               ymax = ToleranceIndexMean + ToleranceIndexSd)) +
+  geom_errorbarh(data = gd, aes(x = ResistanceIndexMean, y = ToleranceIndexMean, col = Mouse_genotype,
+                               xmin = ResistanceIndexMean - ResistanceIndexSd, 
+                               xmax = ResistanceIndexMean + ResistanceIndexSd)) +
+  theme_bw()+
+  scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
+  scale_fill_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
+  scale_shape_manual(values = c(24,22,21)) +
+  ylab(label = "Tolerance index") +
+  scale_x_continuous(name = "Resistance index")
 
 ##########
 # Some toy
