@@ -219,6 +219,9 @@ modResStrain <- glm.nb(peak.oocysts.per.g.mouse ~ infection_isolate*Mouse_genoty
 anova(modResStrain, test = "LRT")
 # SIGNIF infection isolate (p-value = 0.01902) + interactions with mice (p-value = 8.432e-05)
 
+# postHoc test
+TukeyHSD(modResStrain)
+?TukeyHSD
 ## And plot:
 ## To add Ns on top of bars
 getNs <- function(proxy, df, groupMus = "Mouse_genotype", groupPar = "infection_isolate"){
@@ -281,6 +284,7 @@ modImpStrain <- survreg(Surv(impact)~infection_isolate*Mouse_genotype, data = su
 anova(modImpStrain)
 length(summaryDF108mice$relWL)
 # Eimeria isolate significant
+TukeyHSD(modImpStrain)
 
 plotI_F0_subsp <- plot_model(modImpSubsp, type = "int",dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
   scale_color_manual(values = c("blue","red"),
@@ -315,6 +319,16 @@ length(na.omit(summaryDF108mice$ToleranceIndex))
 modTolStrain <- lm(ToleranceIndex ~ infection_isolate*Mouse_genotype, data = summaryDF108mice)
 anova(modTolStrain)
 # mouse genotype & interactions significant
+TukeyHSD(modTolStrain)
+# Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg64 (E. ferrisi):MMm_F0 (Pw-Pw)     0.0276440
+# Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg64 (E. ferrisi):MMm_F0 (Bu-Bu)     0.0187152
+# Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg88 (E. falciformis):MMd_F0 (St-St) 0.0197022
+# Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg139 (E. ferrisi):MMd_F0 (St-St)    0.0009261
+# Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg88 (E. falciformis):MMd_F0 (Sc-Sc) 0.0385139
+# Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg64 (E. ferrisi):MMd_F0 (Sc-Sc)     0.0068948
+# Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg64 (E. ferrisi):MMd_F0 (St-St)     0.0008689
+
+
 
 plotT_F0_subsp <- plot_model(modTolSubspecies, type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
   scale_color_manual(values = c("blue", "red"),
