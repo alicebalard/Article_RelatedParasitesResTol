@@ -220,8 +220,67 @@ anova(modResStrain, test = "LRT")
 # SIGNIF infection isolate (p-value = 0.01902) + interactions with mice (p-value = 8.432e-05)
 
 # postHoc test
-TukeyHSD(modResStrain)
-?TukeyHSD
+summaryDF108mice$intFac <- interaction(summaryDF108mice$infection_isolate, 
+                                       summaryDF108mice$Mouse_genotype, drop=T)
+
+modResStrainformulticomp <- glm.nb(peak.oocysts.per.g.mouse ~ intFac, data = summaryDF108mice)
+postHocRes <- summary(glht(modResStrainformulticomp, linfct=mcp(intFac = "Tukey")))
+
+
+
+postHocRes
+# Brandenburg64 (E. ferrisi).MMd_F0 (Sc-Sc) - Brandenburg139 (E. ferrisi).MMd_F0 (Sc-Sc) == 0        -0.007186   0.345731  -0.021   1.0000    
+
+postHocRes$test$coefficients # estimates
+
+# extract row and column
+x <- strsplit(names(postHocRes$test$coefficients), " - ")
+rownames <- unique(unlist(lapply(x, `[[`, 1)))
+colnames <- unique(unlist(lapply(x, `[[`, 2)))
+
+# make a matrix
+mymat <- matrix(nrow = length(rownames), ncol = length(colnames))
+rownames(mymat) <- rownames
+colnames(mymat) <- colnames
+
+# grep the good value
+grepl(paste(rownames[1], colnames[1], sep = " - "), names(postHocRes$test$coefficients))
+
+grep(paste(rownames[1], colnames[1], sep = " - "), names(postHocRes$test$coefficients))
+
+places[grepl("cities", names(places))]
+
+postHocRes$test$coefficients[grepl(paste(rownames[1], colnames[1], sep = " - "), names(postHocRes$test$coefficients))]
+
+myEstimates <- postHocRes$test$coefficients
+pattern <- paste(rownames[1], colnames[1], sep = " - ")
+y <- myEstimates[names(myEstimates) %in% pattern]
+mymat[1,1] <- y
+
+colnames(postHocRes$test)
+
+# fill it up with Estimate & Std. Error for the upper triangle, z value & Pr(>|z|) on the lower triangle
+
+
+
+
+## Results:
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (Sc-Sc) == 0       0.0294 *  
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg88 (E. falciformis).MMd_F0 (Sc-Sc) == 0   0.0368 *  
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (St-St) == 0        <0.01 ** 
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg88 (E. falciformis).MMd_F0 (St-St) == 0    <0.01 ***
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg139 (E. ferrisi).MMm_F0 (Bu-Bu) == 0      0.0318 *  
+# Brandenburg88 (E. falciformis).MMm_F0 (Bu-Bu) - Brandenburg64 (E. ferrisi).MMm_F0 (Bu-Bu) == 0       0.0189 *  
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMm_F0 (Bu-Bu) == 0        <0.01 ***
+# Brandenburg64 (E. ferrisi).MMm_F0 (Pw-Pw) - Brandenburg88 (E. falciformis).MMm_F0 (Bu-Bu) == 0       0.0226 *  
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg139 (E. ferrisi).MMm_F0 (Pw-Pw) == 0       <0.01 ** 
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMm_F0 (Pw-Pw) == 0        <0.01 ***
+
+S$test$coefficients
+
+S$test
+grep("burg139", names(S$test$coefficients))
+
 ## And plot:
 ## To add Ns on top of bars
 getNs <- function(proxy, df, groupMus = "Mouse_genotype", groupPar = "infection_isolate"){
@@ -278,13 +337,23 @@ plotR_F0_strains
 modImpSubsp <- survreg(Surv(impact)~Eimeria_species*Mouse_subspecies, data = summaryDF108mice, dist="weibull")
 anova(modImpSubsp) # Eimeria species AND mouse subspecies significant
 
-
 ## Translation of 1% because Weibull doesn't support nul data
 modImpStrain <- survreg(Surv(impact)~infection_isolate*Mouse_genotype, data = summaryDF108mice, dist="weibull")
 anova(modImpStrain)
 length(summaryDF108mice$relWL)
 # Eimeria isolate significant
-TukeyHSD(modImpStrain)
+
+## post-hoc Tukey test
+modImpStrainformulticomp <- survreg(Surv(impact)~intFac, data = summaryDF108mice, dist="weibull")
+summary(glht(modImpStrainformulticomp, linfct=mcp(intFac = "Tukey")))
+
+# Results (significant only)  
+# Brandenburg88 (E. falciformis).MMm_F0 (Bu-Bu) - Brandenburg64 (E. ferrisi).MMd_F0 (Sc-Sc) == 0        <0.01 ** 
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (Sc-Sc) == 0        <0.01 ***
+# Brandenburg64 (E. ferrisi).MMd_F0 (St-St) - Brandenburg88 (E. falciformis).MMd_F0 (Sc-Sc) == 0       0.0360 *  
+# Brandenburg88 (E. falciformis).MMm_F0 (Bu-Bu) - Brandenburg64 (E. ferrisi).MMd_F0 (St-St) == 0        <0.01 ***
+# Brandenburg64 (E. ferrisi).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (St-St) == 0           0.0222 *  
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (St-St) == 0        <0.01 ***
 
 plotI_F0_subsp <- plot_model(modImpSubsp, type = "int",dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
   scale_color_manual(values = c("blue","red"),
@@ -328,7 +397,21 @@ TukeyHSD(modTolStrain)
 # Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg64 (E. ferrisi):MMd_F0 (Sc-Sc)     0.0068948
 # Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg64 (E. ferrisi):MMd_F0 (St-St)     0.0008689
 
+## post-hoc Tukey test -> for lm should be the same results with TukeyHSD and glht: indeed :) 
+modTolStrainformulticomp <- lm(ToleranceIndex ~ intFac, data = summaryDF108mice)
+S.T <- summary(glht(modTolStrainformulticomp, linfct=mcp(intFac = "Tukey")))
+# Results (significant only)
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (Sc-Sc) == 0        <0.01 ** 
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg88 (E. falciformis).MMd_F0 (Sc-Sc) == 0   0.0356 *  
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg139 (E. ferrisi).MMd_F0 (St-St) == 0       <0.01 ***
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (St-St) == 0        <0.01 ***
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg88 (E. falciformis).MMd_F0 (St-St) == 0   0.0185 *  
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMm_F0 (Bu-Bu) == 0       0.0169 *  
+# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMm_F0 (Pw-Pw) == 0       0.0256 *  
 
+x <- unlist(lapply(strsplit(rownames(S.T$linfct), " - "), `[[`, 1))
+x <- data.frame(mycols = unique(x))
+write.csv(x, "x.csv", row.names = F)
 
 plotT_F0_subsp <- plot_model(modTolSubspecies, type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
   scale_color_manual(values = c("blue", "red"),
