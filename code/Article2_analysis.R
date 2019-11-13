@@ -232,37 +232,50 @@ postHocRes
 # Brandenburg64 (E. ferrisi).MMd_F0 (Sc-Sc) - Brandenburg139 (E. ferrisi).MMd_F0 (Sc-Sc) == 0        -0.007186   0.345731  -0.021   1.0000    
 
 postHocRes$test$coefficients # estimates
-
-# extract row and column
-x <- strsplit(names(postHocRes$test$coefficients), " - ")
-rownames <- unique(unlist(lapply(x, `[[`, 1)))
-colnames <- unique(unlist(lapply(x, `[[`, 2)))
-
-# make a matrix
-mymat <- matrix(nrow = length(rownames), ncol = length(colnames))
-rownames(mymat) <- rownames
-colnames(mymat) <- colnames
-
-# grep the good value
-grepl(paste(rownames[1], colnames[1], sep = " - "), names(postHocRes$test$coefficients))
-
-grep(paste(rownames[1], colnames[1], sep = " - "), names(postHocRes$test$coefficients))
-
-places[grepl("cities", names(places))]
-
-postHocRes$test$coefficients[grepl(paste(rownames[1], colnames[1], sep = " - "), names(postHocRes$test$coefficients))]
-
-myEstimates <- postHocRes$test$coefficients
-pattern <- paste(rownames[1], colnames[1], sep = " - ")
-y <- myEstimates[names(myEstimates) %in% pattern]
-mymat[1,1] <- y
-
-colnames(postHocRes$test)
-
-# fill it up with Estimate & Std. Error for the upper triangle, z value & Pr(>|z|) on the lower triangle
+postHocRes$test$sigma # Std. Error  
+postHocRes$test$tstat # z value
+postHocRes$test$pvalues # Pr(>|z|)
+length(postHocRes$test$coefficients)
 
 
+getFullMatrix <- function(postHoc){
+  upperTriangle <- paste0("est:", round(postHoc$test$coefficients, 2), ", Std.Error:",round(postHoc$test$sigma, 2))
+  lowerTriangle <- paste0("z value:", round(postHoc$test$tstat, 2), ", Pr(>|z|):",round(postHoc$test$pvalues, 2))
+  getMatrix <- function(postHoc, toFillUpWith){
+    x <- strsplit(names(postHoc$test$coefficients), " - ")
+    rownames <- as.character(unlist(lapply(x, `[[`, 1)))
+    colnames <- as.character(unlist(lapply(x, `[[`, 2)))
+    myDf_PostHoc <- data.frame(colnames = colnames, rownames = rownames, toFillUpWith = toFillUpWith)
+    
+    #fill gaps to have 12 rows and 12 columns
+    myDf_PostHoc <- rbind(data.frame(colnames = myDf_PostHoc$colnames[1],
+                                     rownames = myDf_PostHoc$colnames[1], toFillUpWith = "diagonal"),
+                          myDf_PostHoc,
+                          data.frame(colnames = myDf_PostHoc$rownames[length(myDf_PostHoc$rownames)],
+                                     rownames = myDf_PostHoc$rownames[length(myDf_PostHoc$rownames)], toFillUpWith = "diagonal"))
+    
+    # Create matrix
+    mat <- reshape(myDf_PostHoc, idvar = "colnames", timevar = "rownames", direction = "wide")
+    rownames(mat) <- mat$colnames
+    mat <- mat[!names(mat) %in% "colnames"]
+    colnames(mat) <- gsub("toFillUpWith.", "", colnames(mat))
+    return(mat)
+  }
+  ### make matrix 1: estimates and standard errors
+  mat1 <- getMatrix(postHocRes, upperTriangle)
+  ### make matrix 2: z value and P
+  mat2 <- getMatrix(postHocRes, lowerTriangle)
+  mat3 <- t(mat2)
+  ## Combine
+  mat <- mat1
+  mat[] <- lapply(mat, as.character)
+  mat[lower.tri(mat)] <- mat3[lower.tri(mat3)]
+  mat <- as.matrix(mat)
+  diag(mat) <- ""
+  return(mat)
+}
 
+myMatpostHocRes <- getFullMatrix(postHocRes)
 
 ## Results:
 # Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (Sc-Sc) == 0       0.0294 *  
@@ -275,11 +288,6 @@ colnames(postHocRes$test)
 # Brandenburg64 (E. ferrisi).MMm_F0 (Pw-Pw) - Brandenburg88 (E. falciformis).MMm_F0 (Bu-Bu) == 0       0.0226 *  
 # Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg139 (E. ferrisi).MMm_F0 (Pw-Pw) == 0       <0.01 ** 
 # Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMm_F0 (Pw-Pw) == 0        <0.01 ***
-
-S$test$coefficients
-
-S$test
-grep("burg139", names(S$test$coefficients))
 
 ## And plot:
 ## To add Ns on top of bars
