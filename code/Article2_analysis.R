@@ -226,21 +226,18 @@ summaryDF108mice$intFac <- interaction(summaryDF108mice$infection_isolate,
 modResStrainformulticomp <- glm.nb(peak.oocysts.per.g.mouse ~ intFac, data = summaryDF108mice)
 postHocRes <- summary(glht(modResStrainformulticomp, linfct=mcp(intFac = "Tukey")))
 
-
-
-postHocRes
-# Brandenburg64 (E. ferrisi).MMd_F0 (Sc-Sc) - Brandenburg139 (E. ferrisi).MMd_F0 (Sc-Sc) == 0        -0.007186   0.345731  -0.021   1.0000    
-
-postHocRes$test$coefficients # estimates
-postHocRes$test$sigma # Std. Error  
-postHocRes$test$tstat # z value
-postHocRes$test$pvalues # Pr(>|z|)
-length(postHocRes$test$coefficients)
-
-
+# Create a matrix to present the post-hoc tests 
 getFullMatrix <- function(postHoc){
+  
+  pvalues <- postHoc$test$pvalues
+  pvalues <- unlist(lapply(pvalues, function(i){if(i < 0.001) {
+    i <- "< 0.001"
+  } else if (i < 0.01){
+    i <- "< 0.01"
+  } else {i <- round(i, 2)}}))
+  
   upperTriangle <- paste0("est:", round(postHoc$test$coefficients, 2), ", Std.Error:",round(postHoc$test$sigma, 2))
-  lowerTriangle <- paste0("z value:", round(postHoc$test$tstat, 2), ", Pr(>|z|):",round(postHoc$test$pvalues, 2))
+  lowerTriangle <- paste0("z value:", round(postHoc$test$tstat, 2), ", Pr(>|z|):", pvalues)
   getMatrix <- function(postHoc, toFillUpWith){
     x <- strsplit(names(postHoc$test$coefficients), " - ")
     rownames <- as.character(unlist(lapply(x, `[[`, 1)))
@@ -276,6 +273,7 @@ getFullMatrix <- function(postHoc){
 }
 
 myMatpostHocRes <- getFullMatrix(postHocRes)
+write.csv(myMatpostHocRes, "../figures/supTablePostHocRes.csv")
 
 ## Results:
 # Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (Sc-Sc) == 0       0.0294 *  
@@ -353,7 +351,10 @@ length(summaryDF108mice$relWL)
 
 ## post-hoc Tukey test
 modImpStrainformulticomp <- survreg(Surv(impact)~intFac, data = summaryDF108mice, dist="weibull")
-summary(glht(modImpStrainformulticomp, linfct=mcp(intFac = "Tukey")))
+postHocImp <- summary(glht(modImpStrainformulticomp, linfct=mcp(intFac = "Tukey")))
+
+myMatpostHocImp <- getFullMatrix(postHocImp)
+write.csv(myMatpostHocImp, "../figures/supTablePostHocImp.csv")
 
 # Results (significant only)  
 # Brandenburg88 (E. falciformis).MMm_F0 (Bu-Bu) - Brandenburg64 (E. ferrisi).MMd_F0 (Sc-Sc) == 0        <0.01 ** 
@@ -407,7 +408,7 @@ TukeyHSD(modTolStrain)
 
 ## post-hoc Tukey test -> for lm should be the same results with TukeyHSD and glht: indeed :) 
 modTolStrainformulticomp <- lm(ToleranceIndex ~ intFac, data = summaryDF108mice)
-S.T <- summary(glht(modTolStrainformulticomp, linfct=mcp(intFac = "Tukey")))
+  postHocTol <- summary(glht(modTolStrainformulticomp, linfct=mcp(intFac = "Tukey")))
 # Results (significant only)
 # Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (Sc-Sc) == 0        <0.01 ** 
 # Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg88 (E. falciformis).MMd_F0 (Sc-Sc) == 0   0.0356 *  
@@ -417,9 +418,8 @@ S.T <- summary(glht(modTolStrainformulticomp, linfct=mcp(intFac = "Tukey")))
 # Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMm_F0 (Bu-Bu) == 0       0.0169 *  
 # Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMm_F0 (Pw-Pw) == 0       0.0256 *  
 
-x <- unlist(lapply(strsplit(rownames(S.T$linfct), " - "), `[[`, 1))
-x <- data.frame(mycols = unique(x))
-write.csv(x, "x.csv", row.names = F)
+myMatpostHocTol<- getFullMatrix(postHocTol)
+write.csv(myMatpostHocTol, "../figures/supTablePostHocTol.csv")
 
 plotT_F0_subsp <- plot_model(modTolSubspecies, type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
   scale_color_manual(values = c("blue", "red"),
