@@ -150,7 +150,7 @@ findGoodDist(x = xImp+ 0.01, distribs = c("normal", "weibull"),
              distribs2 = c("norm", "weibull"))
 dev.off()
 ### weibull for impact on health
-summaryDF108mice$impact <- summaryDF108mice$relWL +0.01
+summaryDF108mice$impact <- summaryDF108mice$relWL + 0.01
 
 ## TOLERANCE
 summaryDF108mice$ToleranceIndex <- log10(
@@ -206,14 +206,14 @@ modResSubsp <- glm.nb(peak.oocysts.per.g.mouse ~ Eimeria_species*Mouse_subspecie
 
 modResSubsp
 anova(modResSubsp)
-summary(modResSubsp)
-a <- aov(modResSubsp)
-summary.lm(a)
-# SIGNIF infection isolate (p-value = 0.02236) + interactions with mice (p-value = 6.52e-07)
+# summary(modResSubsp)
+# a <- aov(modResSubsp)
+# summary.lm(a)
+# SIGNIF infection isolate (p-value = 0.02236) +  interactions with mice (p-value = 6.52e-07)
 
 summary(modResSubsp)
 
-# by strains
+  # by strains
 modResStrain <- glm.nb(peak.oocysts.per.g.mouse ~ infection_isolate*Mouse_genotype, 
                  data = summaryDF108mice)
 anova(modResStrain, test = "LRT")
@@ -340,8 +340,20 @@ plotR_F0_strains
 ############
 ## Impact ##
 ############
+
+summaryDF108mice %>%
+  group_by(Mouse_subspecies, Eimeria_species) %>% 
+  summarise(meanImp = mean(impact, na.rm = T))
+
 modImpSubsp <- survreg(Surv(impact)~Eimeria_species*Mouse_subspecies, data = summaryDF108mice, dist="weibull")
 anova(modImpSubsp) # Eimeria species AND mouse subspecies significant
+  
+coef(modImpSubsp)
+coefImp <- exp(coef(modImpSubsp))
+coefImp[1] - 0.01# Efer-MmD: 6.1%
+coefImp[1] * coefImp[2] - 0.01 # Efal-MmD: 9.3%
+coefImp[1] * coefImp[3] - 0.01# Efer-Mmm: 8.3%
+coefImp[1] * coefImp[2] * coefImp[3] * coefImp[4] -0.01 # Efal-Mmm: 18.7%
 
 ## Translation of 1% because Weibull doesn't support nul data
 modImpStrain <- survreg(Surv(impact)~infection_isolate*Mouse_genotype, data = summaryDF108mice, dist="weibull")
@@ -393,10 +405,14 @@ plotI_F0_strains
 modTolSubspecies <- lm(ToleranceIndex ~ Eimeria_species*Mouse_subspecies, data = summaryDF108mice)
 anova(modTolSubspecies)
 
+coef(modTolSubspecies)
+
 length(na.omit(summaryDF108mice$ToleranceIndex))
 modTolStrain <- lm(ToleranceIndex ~ infection_isolate*Mouse_genotype, data = summaryDF108mice)
 anova(modTolStrain)
-# mouse genotype & interactions significant
+
+
+
 TukeyHSD(modTolStrain)
 # Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg64 (E. ferrisi):MMm_F0 (Pw-Pw)     0.0276440
 # Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg64 (E. ferrisi):MMm_F0 (Bu-Bu)     0.0187152

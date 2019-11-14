@@ -162,7 +162,7 @@ restolplot <- ggplot(sumDFnoANTHnoCONTA, aes(x = ResistanceIndex, y = ToleranceI
   scale_x_continuous(name = "Resistance index")
 restolplot
 
-# https://stats.idre.ucla.edu/r/seminars/interactions-r/
+  # https://stats.idre.ucla.edu/r/seminars/interactions-r/
 # Test the difference between slopes:
 modResTol <- lm(formula = ToleranceIndex ~ ResistanceIndex * Eimeria_species, data = sumDFnoANTHnoCONTA)
 
