@@ -152,8 +152,8 @@ sumDFnoANTHnoCONTA$group <- paste(sumDFnoANTHnoCONTA$Mouse_genotype, sumDFnoANTH
 # Plot both data sets
 restolplot <- ggplot(sumDFnoANTHnoCONTA, aes(x = ResistanceIndex, y = ToleranceIndex)) +
   geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = Eimeria_species)) +
-  geom_point(alpha = .4, aes(col = Mouse_genotype, fill = Mouse_genotype, shape = infection_isolate), size = 4) +
-  geom_point(data = gd, aes(fill = Mouse_genotype, shape = infection_isolate), size = 10) +
+  geom_point(alpha = .4, aes(col = Mouse_genotype, fill = Mouse_genotype, shape = infection_isolate), size = 2) +
+  geom_point(data = gd, aes(fill = Mouse_genotype, shape = infection_isolate), size = 5) +
   theme_bw()+
   scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
   scale_fill_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
