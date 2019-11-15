@@ -340,7 +340,7 @@ plotR_F0_strains
 ############
 ## Impact ##
 ############
-
+## NB: summaryDF108mice$impact <- summaryDF108mice$relWL + 0.01
 summaryDF108mice %>%
   group_by(Mouse_subspecies, Eimeria_species) %>% 
   summarise(meanImp = mean(impact, na.rm = T))
@@ -376,13 +376,18 @@ write.csv(myMatpostHocImp, "../figures/supTablePostHocImp.csv")
 # Brandenburg64 (E. ferrisi).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (St-St) == 0           0.0222 *  
 # Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (St-St) == 0        <0.01 ***
 
+## NB. translate back 0.01
+transValuesImp <- seq(0.01,0.26, 0.05)
+as.character(transValuesImp - 0.01)
+realValuesImpLabels <- c("0%", "5%", "10%", "15%", "20%", "25%")
+
 plotI_F0_subsp <- plot_model(modImpSubsp, type = "int",dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
   scale_color_manual(values = c("blue","red"),
                      name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
   xlab("Eimeria species") +
   ggtitle("Impact on host health") +
   ylab("(predicted) maximum weight loss") +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
+  scale_y_continuous(breaks = transValuesImp, labels = realValuesImpLabels)+
   theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
   geom_text(aes(x=posx.1,y=0,label=getNs("relWL", summaryDF108mice,
                                          "Mouse_subspecies", "Eimeria_species")),vjust=0)
@@ -394,7 +399,7 @@ plotI_F0_strains <- plot_model(modImpStrain, type = "int",dot.size = 4, dodge = 
   xlab("Eimeria isolate") +
   ggtitle("Impact on host health") +
   ylab("(predicted) maximum weight loss") +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
+  scale_y_continuous(breaks = transValuesImp, labels = realValuesImpLabels)+
   theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
   geom_text(aes(x=posx.2,y=0,label=getNs("relWL", summaryDF108mice)),vjust=0)
 plotI_F0_strains
