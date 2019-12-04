@@ -26,9 +26,9 @@ map <- ggmap(area) +
   theme(legend.position = 'none', axis.ticks=element_blank())
 map 
 
-pdf(file = "../figures/Fig1.pdf", width = 5, height =5)
-map
-dev.off()
+#pdf(file = "../figures/Fig1.pdf", width = 5, height =5)
+#map
+#dev.off()
 
 ######################################
 ########## Read information ##########
@@ -102,9 +102,9 @@ F2.2 <- ggplot(forplot2, aes(dpi, mean, group = infection_isolate,
 library(cowplot)
 Fig2 <- plot_grid(F2.1, F2.2,
                   labels=c("A", "B"), label_size = 20)
-pdf(file = "../figures/Fig2.pdf", width = 10, height = 5)
+#pdf(file = "../figures/Fig2.pdf", width = 10, height = 5)
 Fig2
-dev.off()
+#dev.off()
 
 ## Correlation sum of oocysts / peak oocysts
 ggplot(summaryDF108mice, aes(sumoocysts.per.tube, max.oocysts.per.tube)) + 
@@ -135,20 +135,20 @@ plotChoiceResIndex
 xRes <- as.numeric(na.omit(summaryDF108mice$peak.oocysts.per.g.mouse))
 hist(xRes, breaks = 100)
 descdist(xRes)
-pdf("../figures/supfig1.1.pdf")
+#pdf("../figures/supfig1.1.pdf")
 findGoodDist(x = xRes, distribs = c("normal", "negative binomial"), 
              distribs2 = c("norm", "nbinom"))
-dev.off()
+#dev.off()
 ### nbinom for resistance
 
 ## IMPACT ON HEALTH
 xImp <- as.numeric(na.omit(summaryDF108mice$relWL))
 hist(xImp, breaks = 100)
 descdist(xImp)
-pdf("../figures/supfig1.2.pdf")
+#pdf("../figures/supfig1.2.pdf")
 findGoodDist(x = xImp+ 0.01, distribs = c("normal", "weibull"), 
              distribs2 = c("norm", "weibull"))
-dev.off()
+#dev.off()
 ### weibull for impact on health
 summaryDF108mice$impact <- summaryDF108mice$relWL + 0.01
 
@@ -179,19 +179,19 @@ xTol <- as.numeric(na.omit(summaryDF108mice$ToleranceIndex))
 hist(xTol, breaks = 1000)
 descdist(xTol)
 
-pdf("../figures/supfig1.3.pdf")
+#pdf("../figures/supfig1.3.pdf")
 findGoodDist(x = xTol, distribs = c("normal"), 
              distribs2 = c("norm"))
-dev.off()
+#dev.off()
 
 summaryDF108mice[is.na(summaryDF108mice$ToleranceIndex), c("EH_ID", "Mouse_genotype", "relWL", "peak.oocysts.per.g.mouse")]
 # 9 mice died before peak
 
 #
 pdf(file = "../figures/choiceIndexes.pdf", width = 10, height = 5)
-plot_grid(plotChoiceResIndex,
-          plotChoiceTolIndex,
-          labels=c("A", "B"), label_size = 15)
+#plot_grid(plotChoiceResIndex,
+         # plotChoiceTolIndex,
+         #  labels=c("A", "B"), label_size = 15)
 dev.off()
 
 ################################
@@ -213,7 +213,20 @@ anova(modResSubsp)
 
 summary(modResSubsp)
 
-  # by strains
+### POST-HOC: all by all
+summaryDF108mice$intFac1 <- interaction(summaryDF108mice$Eimeria_species, 
+                                       summaryDF108mice$Mouse_subspecies, drop=T)
+
+modResSubsp_multicomp <- glm.nb(peak.oocysts.per.g.mouse ~ intFac1, data = summaryDF108mice)
+postHocResSubsp <- summary(glht(modResSubsp_multicomp, linfct=mcp(intFac1 = "Tukey")))
+
+myMatpostHoc_Res_Subsp <- getMatrixPostHoc(postHocResSubsp)
+write.csv(myMatpostHoc_Res_Subsp, "../figures/matrixPostHoc_Res_Subsp.csv")
+
+
+
+
+# by strains
 modResStrain <- glm.nb(peak.oocysts.per.g.mouse ~ infection_isolate*Mouse_genotype, 
                  data = summaryDF108mice)
 anova(modResStrain, test = "LRT")
@@ -227,51 +240,6 @@ modResStrainformulticomp <- glm.nb(peak.oocysts.per.g.mouse ~ intFac, data = sum
 postHocRes <- summary(glht(modResStrainformulticomp, linfct=mcp(intFac = "Tukey")))
 
 # Create a matrix to present the post-hoc tests 
-getFullMatrix <- function(postHoc){
-  
-  pvalues <- postHoc$test$pvalues
-  pvalues <- unlist(lapply(pvalues, function(i){if(i < 0.001) {
-    i <- "< 0.001"
-  } else if (i < 0.01){
-    i <- "< 0.01"
-  } else {i <- round(i, 2)}}))
-  
-  upperTriangle <- paste0("est:", round(postHoc$test$coefficients, 2), ", Std.Error:",round(postHoc$test$sigma, 2))
-  lowerTriangle <- paste0("z value:", round(postHoc$test$tstat, 2), ", Pr(>|z|):", pvalues)
-  getMatrix <- function(postHoc, toFillUpWith){
-    x <- strsplit(names(postHoc$test$coefficients), " - ")
-    rownames <- as.character(unlist(lapply(x, `[[`, 1)))
-    colnames <- as.character(unlist(lapply(x, `[[`, 2)))
-    myDf_PostHoc <- data.frame(colnames = colnames, rownames = rownames, toFillUpWith = toFillUpWith)
-    
-    #fill gaps to have 12 rows and 12 columns
-    myDf_PostHoc <- rbind(data.frame(colnames = myDf_PostHoc$colnames[1],
-                                     rownames = myDf_PostHoc$colnames[1], toFillUpWith = "diagonal"),
-                          myDf_PostHoc,
-                          data.frame(colnames = myDf_PostHoc$rownames[length(myDf_PostHoc$rownames)],
-                                     rownames = myDf_PostHoc$rownames[length(myDf_PostHoc$rownames)], toFillUpWith = "diagonal"))
-    
-    # Create matrix
-    mat <- reshape(myDf_PostHoc, idvar = "colnames", timevar = "rownames", direction = "wide")
-    rownames(mat) <- mat$colnames
-    mat <- mat[!names(mat) %in% "colnames"]
-    colnames(mat) <- gsub("toFillUpWith.", "", colnames(mat))
-    return(mat)
-  }
-  ### make matrix 1: estimates and standard errors
-  mat1 <- getMatrix(postHocRes, upperTriangle)
-  ### make matrix 2: z value and P
-  mat2 <- getMatrix(postHocRes, lowerTriangle)
-  mat3 <- t(mat2)
-  ## Combine
-  mat <- mat1
-  mat[] <- lapply(mat, as.character)
-  mat[lower.tri(mat)] <- mat3[lower.tri(mat3)]
-  mat <- as.matrix(mat)
-  diag(mat) <- ""
-  return(mat)
-}
-
 myMatpostHocRes <- getFullMatrix(postHocRes)
 write.csv(myMatpostHocRes, "../figures/supTablePostHocRes.csv")
 
