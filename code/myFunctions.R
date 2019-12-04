@@ -2,6 +2,53 @@
 # useful functions for data analysis infection experiments
 # March 2019
 
+### Create matrix for posthoc test
+getMatrixPostHoc <- function(postHoc){
+  
+  pvalues <- postHoc$test$pvalues
+  pvalues <- unlist(lapply(pvalues, function(i){if(i < 0.001) {
+    i <- "< 0.001"
+  } else if (i < 0.01){
+    i <- "< 0.01"
+  } else {i <- round(i, 2)}}))
+  
+  upperTriangle <- paste0("est:", round(postHoc$test$coefficients, 2), ", Std.Error:",round(postHoc$test$sigma, 2))
+  lowerTriangle <- paste0("z value:", round(postHoc$test$tstat, 2), ", Pr(>|z|):", pvalues)
+  getMatrix <- function(postHoc, toFillUpWith){
+    x <- strsplit(names(postHoc$test$coefficients), " - ")
+    rownames <- as.character(unlist(lapply(x, `[[`, 1)))
+    colnames <- as.character(unlist(lapply(x, `[[`, 2)))
+    myDf_PostHoc <- data.frame(colnames = colnames, rownames = rownames, toFillUpWith = toFillUpWith)
+    
+    #fill gaps to have 12 rows and 12 columns
+    myDf_PostHoc <- rbind(data.frame(colnames = myDf_PostHoc$colnames[1],
+                                     rownames = myDf_PostHoc$colnames[1], toFillUpWith = "diagonal"),
+                          myDf_PostHoc,
+                          data.frame(colnames = myDf_PostHoc$rownames[length(myDf_PostHoc$rownames)],
+                                     rownames = myDf_PostHoc$rownames[length(myDf_PostHoc$rownames)], toFillUpWith = "diagonal"))
+    
+    # Create matrix
+    mat <- reshape(myDf_PostHoc, idvar = "colnames", timevar = "rownames", direction = "wide")
+    rownames(mat) <- mat$colnames
+    mat <- mat[!names(mat) %in% "colnames"]
+    colnames(mat) <- gsub("toFillUpWith.", "", colnames(mat))
+    return(mat)
+  }
+  ### make matrix 1: estimates and standard errors
+  mat1 <- getMatrix(postHoc, upperTriangle)
+  ### make matrix 2: z value and P
+  mat2 <- getMatrix(postHoc, lowerTriangle)
+  mat3 <- t(mat2)
+  ## Combine
+  mat <- mat1
+  mat[] <- lapply(mat, as.character)
+  mat[lower.tri(mat)] <- mat3[lower.tri(mat3)]
+  mat <- as.matrix(mat)
+  diag(mat) <- ""
+  return(mat)
+}
+
+
 # Load libraries
 if(!require(multcomp)){install.packages("multcomp")}
 listLib <- c("ggplot2", "gridExtra", "reshape2", "scales", "lme4", 
