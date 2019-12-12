@@ -12,6 +12,16 @@ source("dataPreparation.R")
 
 ###### Map of our samples FIGURE 1 (with design) ######
 hmhzline <- read.csv("../data/HMHZ.csv")
+
+## Distance (in km) to center for each founder mouse strain
+#install.packages("geosphere")
+library(geosphere)
+line <- as.matrix(data.frame(hmhzline$lon, hmhzline$lat))
+pointsToMap <- as.matrix(data.frame(forMap$longitude, forMap$latitude))
+myDistanceDF <- cbind(data.frame(name = forMap$Name), dist2Line(p = pointsToMap, line = line, distfun=distGeo))
+myDistanceDF$distanceToHMHZinkm <- myDistanceDF$distance / 1000
+myDistanceDF
+
 area <- get_stamenmap(bbox = c(9, 49, 17, 53.7), zoom = 7,
                       maptype = "toner-lite")
 
