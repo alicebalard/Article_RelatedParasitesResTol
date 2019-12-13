@@ -12,38 +12,35 @@ source("dataPreparation.R")
 
 ###### Map of our samples FIGURE 1 (with design) ######
 hmhzline <- read.csv("../data/HMHZ.csv")
+# change not visible color
+forMap$color <- as.character(forMap$color)
+forMap$color[forMap$color %in% "green"] <- "green4"
+forMap$color <- as.factor(forMap$color)
 
-## Distance (in km) to center for each founder mouse strain
-#install.packages("geosphere")
-library(geosphere)
-line <- as.matrix(data.frame(hmhzline$lon, hmhzline$lat))
-pointsToMap <- as.matrix(data.frame(forMap$longitude, forMap$latitude))
-myDistanceDF <- cbind(data.frame(name = forMap$Name), dist2Line(p = pointsToMap, line = line, distfun=distGeo))
-myDistanceDF$distanceToHMHZinkm <- myDistanceDF$distance / 1000
-myDistanceDF
-
-area <- get_stamenmap(bbox = c(9, 49, 17, 53.7), zoom = 7,
-                      maptype = "toner-lite")
-
+area <- get_stamenmap(bbox = c(8, 48, 18, 54), zoom = 6, maptype = "toner-lite") 
 map <- ggmap(area) +
-  geom_path(hmhzline, mapping =  aes(x = lon, y = lat), col = "purple", size = 4) +
+  geom_path(hmhzline, mapping =  aes(x = lon, y = lat), col = "purple", size = 1) +
   geom_label_repel(data = forMap,
-                   aes(longitude, latitude, label = Name),
-                   box.padding = 2, size = 5) +
+                   aes(longitude, latitude, label = Name, fill = color),
+                   box.padding = 2, size = 7, col = "white", segment.colour = "black") +
   geom_point(data = forMap, aes(longitude, latitude, col = color), size = 6) +
   scale_color_manual(values = as.character(levels(forMap$color))) +
+  scale_fill_manual(values = as.character(levels(forMap$color))) +
   theme_bw() +
   theme(legend.position = 'none', axis.ticks=element_blank())
 map 
-
-#pdf(file = "../figures/Fig1.pdf", width = 5, height =5)
-#map
-#dev.off()
+# pdf(file = "../figures/Fig1.pdf", width = 8, height = 8)
+# map
+# dev.off()
 
 ######################################
 ########## Read information ##########
 ######################################
 
+## Read batches (Exp_003 treated by anthelminthcs only)
+table(summaryDF108mice$infection_isolate, summaryDF108mice$Mouse_genotype, summaryDF108mice$Exp_ID)
+
+## Read anthelminthics
 table(summaryDF108mice$infection_isolate, summaryDF108mice$Mouse_genotype, summaryDF108mice$anth)
 
 ## Age of mice
@@ -129,7 +126,8 @@ cor(summaryDF108mice$sumoocysts.per.tube , summaryDF108mice$max.oocysts.per.tube
 
 ## RESISTANCE
 # for models, inverse of parasite density:
-summaryDF108mice$peak.oocysts.per.g.mouse
+range(summaryDF108mice$peak.oocysts.per.g.mouse, na.rm = TRUE)
+
 # for plots, invert + translation positive (300000) / 10000:
 getResistanceIndex <- function(x){
   y = (- x + 300000)/300000
@@ -163,6 +161,12 @@ findGoodDist(x = xImp+ 0.01, distribs = c("normal", "weibull"),
 summaryDF108mice$impact <- summaryDF108mice$relWL + 0.01
 
 ## TOLERANCE
+range(summaryDF108mice$relWL / summaryDF108mice$peak.oocysts.per.g.mouse, na.rm = T)
+range(summaryDF108mice$relWL / summaryDF108mice$peak.oocysts.per.g.mouse + 1e-8, na.rm = T)
+range(log10(summaryDF108mice$relWL / summaryDF108mice$peak.oocysts.per.g.mouse + 1e-8), na.rm = T)
+range(log10(summaryDF108mice$relWL / summaryDF108mice$peak.oocysts.per.g.mouse + 1e-8)/-1, na.rm = T)
+range(log10(summaryDF108mice$relWL / summaryDF108mice$peak.oocysts.per.g.mouse + 1e-8)/-8, na.rm = T)
+
 summaryDF108mice$ToleranceIndex <- log10(
   summaryDF108mice$relWL / summaryDF108mice$peak.oocysts.per.g.mouse + 1e-8) / (-8)
 
@@ -180,7 +184,7 @@ plotChoiceTolIndex <- ggplot(summaryDF108mice,
     legend.box.just = "right",
     legend.margin = margin(6, 6, 6, 6)
   )
-  
+
 plotChoiceTolIndex
 
 xTol <- as.numeric(na.omit(summaryDF108mice$ToleranceIndex))
@@ -198,72 +202,71 @@ summaryDF108mice[is.na(summaryDF108mice$ToleranceIndex), c("EH_ID", "Mouse_genot
 # 9 mice died before peak
 
 #
-pdf(file = "../figures/choiceIndexes.pdf", width = 10, height = 5)
-#plot_grid(plotChoiceResIndex,
-         # plotChoiceTolIndex,
-         #  labels=c("A", "B"), label_size = 15)
-dev.off()
+# pdf(file = "../figures/choiceIndexes.pdf", width = 10, height = 5)
+plot_grid(plotChoiceResIndex,
+          plotChoiceTolIndex,
+          labels=c("A", "B"), label_size = 15)
+# dev.off()
 
 ################################
 ##### Statistical analyses #####
 ################################
+## LRT test
+homemadeGtest <- function(full, base){
+  dLL = logLik(full) - logLik(base)
+  dDF = base$df.residual - full$df.residual
+  pvalue <- 1 - stats::pchisq(2*dLL, df=dDF)
+  chisqvalue <- stats::qchisq(p = pvalue, df=dDF)
+  print(paste0("G=",round(2*dLL, 1), " ,df=", dDF, " ,p=", round(pvalue, 6)))
+}
+## LRT significance for each factor
+myLRTsignificanceFactors <- function(modFull, modPar, modMouse, modInt){
+  print("significance of parasite:")
+  homemadeGtest(modFull, modPar)
+  print("significance of mouse:")
+  homemadeGtest(modFull, modMouse)
+  print("significance of interaction:")
+  homemadeGtest(modFull, modInt)
+}
 
 ################
 ## Resistance ##
 ################
 # Mmd vs Mmm
-modResSubsp <- glm.nb(peak.oocysts.per.g.mouse ~ Eimeria_species*Mouse_subspecies, data = summaryDF108mice)
+modResSubspFULL <- glm.nb(peak.oocysts.per.g.mouse ~ Eimeria_species*Mouse_subspecies, data = summaryDF108mice)
+modResSubsp_Para <- glm.nb(peak.oocysts.per.g.mouse ~ Mouse_subspecies, data = summaryDF108mice)
+modResSubsp_Mous <- glm.nb(peak.oocysts.per.g.mouse ~ Eimeria_species, data = summaryDF108mice)
+modResSubsp_inter <- glm.nb(peak.oocysts.per.g.mouse ~ Eimeria_species+Mouse_subspecies, data = summaryDF108mice)
 
-modResSubsp
-anova(modResSubsp)
-# summary(modResSubsp)
-# a <- aov(modResSubsp)
-# summary.lm(a)
-# SIGNIF infection isolate (p-value = 0.02236) +  interactions with mice (p-value = 6.52e-07)
-
-summary(modResSubsp)
+myLRTsignificanceFactors(modResSubspFULL, modResSubsp_Para, modResSubsp_Mous, modResSubsp_inter)
 
 ### POST-HOC: all by all
-summaryDF108mice$intFac1 <- interaction(summaryDF108mice$Eimeria_species, 
-                                       summaryDF108mice$Mouse_subspecies, drop=T)
+summaryDF108mice$intFacSPECIES <- interaction(summaryDF108mice$Eimeria_species, 
+                                              summaryDF108mice$Mouse_subspecies, drop=T)
+summaryDF108mice$intFacSTRAINS <- interaction(summaryDF108mice$infection_isolate, 
+                                              summaryDF108mice$Mouse_genotype, drop=T)
 
-modResSubsp_multicomp <- glm.nb(peak.oocysts.per.g.mouse ~ intFac1, data = summaryDF108mice)
-postHocResSubsp <- summary(glht(modResSubsp_multicomp, linfct=mcp(intFac1 = "Tukey")))
-
+modResSubsp_multicomp <- glm.nb(peak.oocysts.per.g.mouse ~ intFacSPECIES, data = summaryDF108mice)
+postHocResSubsp <- summary(glht(modResSubsp_multicomp, linfct=mcp(intFacSPECIES = "Tukey")))
+postHocResSubsp
 myMatpostHoc_Res_Subsp <- getMatrixPostHoc(postHocResSubsp)
-write.csv(myMatpostHoc_Res_Subsp, "../figures/matrixPostHoc_Res_Subsp.csv")
-
-
-
+write.csv(myMatpostHoc_Res_Subsp, "../figures/TableRes.csv")
 
 # by strains
-modResStrain <- glm.nb(peak.oocysts.per.g.mouse ~ infection_isolate*Mouse_genotype, 
-                 data = summaryDF108mice)
-anova(modResStrain, test = "LRT")
-# SIGNIF infection isolate (p-value = 0.01902) + interactions with mice (p-value = 8.432e-05)
+modResStrainFULL <- glm.nb(peak.oocysts.per.g.mouse ~ infection_isolate*Mouse_genotype, data = summaryDF108mice)
+modResStrain_Para <- glm.nb(peak.oocysts.per.g.mouse ~ Mouse_genotype, data = summaryDF108mice)
+modResStrain_Mous <- glm.nb(peak.oocysts.per.g.mouse ~ infection_isolate, data = summaryDF108mice)
+modResStrain_inter <- glm.nb(peak.oocysts.per.g.mouse ~ infection_isolate+Mouse_genotype, data = summaryDF108mice)
+
+myLRTsignificanceFactors(modResStrainFULL, modResStrain_Para, modResStrain_Mous, modResStrain_inter)
 
 # postHoc test
-summaryDF108mice$intFac <- interaction(summaryDF108mice$infection_isolate, 
-                                       summaryDF108mice$Mouse_genotype, drop=T)
-
-modResStrainformulticomp <- glm.nb(peak.oocysts.per.g.mouse ~ intFac, data = summaryDF108mice)
-postHocRes <- summary(glht(modResStrainformulticomp, linfct=mcp(intFac = "Tukey")))
+modResStrainformulticomp <- glm.nb(peak.oocysts.per.g.mouse ~ intFacSTRAINS, data = summaryDF108mice)
+postHocResStrains <- summary(glht(modResStrainformulticomp, linfct=mcp(intFacSTRAINS = "Tukey")))
 
 # Create a matrix to present the post-hoc tests 
-myMatpostHocRes <- getFullMatrix(postHocRes)
-write.csv(myMatpostHocRes, "../figures/supTablePostHocRes.csv")
-
-## Results:
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (Sc-Sc) == 0       0.0294 *  
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg88 (E. falciformis).MMd_F0 (Sc-Sc) == 0   0.0368 *  
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (St-St) == 0        <0.01 ** 
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg88 (E. falciformis).MMd_F0 (St-St) == 0    <0.01 ***
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg139 (E. ferrisi).MMm_F0 (Bu-Bu) == 0      0.0318 *  
-# Brandenburg88 (E. falciformis).MMm_F0 (Bu-Bu) - Brandenburg64 (E. ferrisi).MMm_F0 (Bu-Bu) == 0       0.0189 *  
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMm_F0 (Bu-Bu) == 0        <0.01 ***
-# Brandenburg64 (E. ferrisi).MMm_F0 (Pw-Pw) - Brandenburg88 (E. falciformis).MMm_F0 (Bu-Bu) == 0       0.0226 *  
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg139 (E. ferrisi).MMm_F0 (Pw-Pw) == 0       <0.01 ** 
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMm_F0 (Pw-Pw) == 0        <0.01 ***
+myMatpostHoc_Res_Strains <- getMatrixPostHoc(postHocResStrains)
+write.csv(myMatpostHoc_Res_Strains, "../figures/supTableRes.csv")
 
 ## And plot:
 ## To add Ns on top of bars
@@ -280,36 +283,26 @@ getNs <- function(proxy, df, groupMus = "Mouse_genotype", groupPar = "infection_
 # plot marginal effects of interaction terms
 posx.1 <- c(0.9,1.1, 1.9,2.1)
 
-## FOR PLOT, use Resistance Index 
-y = seq(0,1,0.05)
-x = -y * 300000 + 300000
-
-plotR_F0_subsp <- plot_model(modResSubsp, type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
+plotR_F0_subsp <- plot_model(modResSubspFULL, type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
   scale_color_manual(values = c("blue", "red"),
                      name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
-  ggtitle("Resistance") +
-  scale_y_continuous("(predicted) Resistance Index",
-                     trans = "reverse",
-                     breaks = x,
-                     labels = y) +
+  ggtitle("Maximum oocysts density \n(mean and standard deviation)") +
+  scale_y_continuous("(predicted) maximum oocysts per mouse gram")+
   xlab("Eimeria species") +
   theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
   geom_text(aes(x=posx.1,y=90000,label=getNs("peak.oocysts.per.g.mouse", summaryDF108mice, 
-                                            "Mouse_subspecies", "Eimeria_species")), vjust=0) 
+                                             "Mouse_subspecies", "Eimeria_species")), vjust=0) 
 
 plotR_F0_subsp
 
 # plot marginal effects of interaction terms by isolates & strains
 posx.2 <- c(0.8+c(0,1/8,2/8,3/8),1.8+c(0,1/8,2/8,3/8),2.8+c(0,1/8,2/8,3/8))
 ## and plot
-plotR_F0_strains <- plot_model(modResStrain, type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
+plotR_F0_strains <- plot_model(modResStrainFULL, type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
   scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
                      name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
-  ggtitle("Resistance") +
-  scale_y_continuous("(predicted) Resistance Index",
-                     trans = "reverse",
-                     breaks = x,
-                     labels = y) +
+  scale_y_continuous("(predicted) maximum oocysts per mouse gram")+
+  ggtitle("Maximum oocysts density \n(mean and standard deviation)") +
   xlab("Eimeria isolate") +
   theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
   geom_text(aes(x=posx.2,y=120000,label=getNs("peak.oocysts.per.g.mouse", summaryDF108mice)),vjust=0) 
@@ -323,61 +316,67 @@ summaryDF108mice %>%
   group_by(Mouse_subspecies, Eimeria_species) %>% 
   summarise(meanImp = mean(impact, na.rm = T))
 
-modImpSubsp <- survreg(Surv(impact)~Eimeria_species*Mouse_subspecies, data = summaryDF108mice, dist="weibull")
-anova(modImpSubsp) # Eimeria species AND mouse subspecies significant
-  
-coef(modImpSubsp)
-coefImp <- exp(coef(modImpSubsp))
+modImpSubspFULL <- survreg(Surv(impact)~Eimeria_species*Mouse_subspecies, data = summaryDF108mice, dist="weibull")
+modImpSubsp_Para <- survreg(Surv(impact)~Mouse_subspecies, data = summaryDF108mice, dist="weibull")
+modImpSubsp_Mous <- survreg(Surv(impact)~Eimeria_species, data = summaryDF108mice, dist="weibull")
+modImpSubsp_inter <- survreg(Surv(impact)~Eimeria_species+Mouse_subspecies, data = summaryDF108mice, dist="weibull")
+
+myLRTsignificanceFactors(modImpSubspFULL, modImpSubsp_Para, modImpSubsp_Mous, modImpSubsp_inter)
+
+## Translation of 1% because Weibull doesn't support nul data
+coef(modImpSubspFULL)
+coefImp <- exp(coef(modImpSubspFULL))
 coefImp[1] - 0.01# Efer-MmD: 6.1%
 coefImp[1] * coefImp[2] - 0.01 # Efal-MmD: 9.3%
 coefImp[1] * coefImp[3] - 0.01# Efer-Mmm: 8.3%
 coefImp[1] * coefImp[2] * coefImp[3] * coefImp[4] -0.01 # Efal-Mmm: 18.7%
 
-## Translation of 1% because Weibull doesn't support nul data
-modImpStrain <- survreg(Surv(impact)~infection_isolate*Mouse_genotype, data = summaryDF108mice, dist="weibull")
-anova(modImpStrain)
-length(summaryDF108mice$relWL)
-# Eimeria isolate significant
+### POST-HOC: all by all
+modImpSubsp_multicomp <-  survreg(Surv(impact)~intFacSPECIES, data = summaryDF108mice, dist="weibull")
+postHocImpSubsp <- summary(glht(modImpSubsp_multicomp, linfct=mcp(intFacSPECIES = "Tukey")))
+postHocImpSubsp
+myMatpostHoc_Imp_Subsp <- getMatrixPostHoc(postHocImpSubsp)
+write.csv(myMatpostHoc_Imp_Subsp, "../figures/TableImp.csv")
+
+## Part 2. imp
+modImpStrainFULL <- survreg(Surv(impact)~infection_isolate*Mouse_genotype, data = summaryDF108mice, dist="weibull")
+modImpStrain_Para <- survreg(Surv(impact)~Mouse_genotype, data = summaryDF108mice, dist="weibull")
+modImpStrain_Mous <- survreg(Surv(impact)~infection_isolate, data = summaryDF108mice, dist="weibull")
+modImpStrain_inter <- survreg(Surv(impact)~infection_isolate+Mouse_genotype, data = summaryDF108mice, dist="weibull")
+
+myLRTsignificanceFactors(modImpStrainFULL, modImpStrain_Para, modImpStrain_Mous, modImpStrain_inter)
 
 ## post-hoc Tukey test
-modImpStrainformulticomp <- survreg(Surv(impact)~intFac, data = summaryDF108mice, dist="weibull")
-postHocImp <- summary(glht(modImpStrainformulticomp, linfct=mcp(intFac = "Tukey")))
-
-myMatpostHocImp <- getFullMatrix(postHocImp)
-write.csv(myMatpostHocImp, "../figures/supTablePostHocImp.csv")
-
-# Results (significant only)  
-# Brandenburg88 (E. falciformis).MMm_F0 (Bu-Bu) - Brandenburg64 (E. ferrisi).MMd_F0 (Sc-Sc) == 0        <0.01 ** 
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (Sc-Sc) == 0        <0.01 ***
-# Brandenburg64 (E. ferrisi).MMd_F0 (St-St) - Brandenburg88 (E. falciformis).MMd_F0 (Sc-Sc) == 0       0.0360 *  
-# Brandenburg88 (E. falciformis).MMm_F0 (Bu-Bu) - Brandenburg64 (E. ferrisi).MMd_F0 (St-St) == 0        <0.01 ***
-# Brandenburg64 (E. ferrisi).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (St-St) == 0           0.0222 *  
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (St-St) == 0        <0.01 ***
+modImpStrainformulticomp <- survreg(Surv(impact)~intFacSTRAINS, data = summaryDF108mice, dist="weibull")
+postHocImp <- summary(glht(modImpStrainformulticomp, linfct=mcp(intFacSTRAINS = "Tukey")))
+myMatpostHocImpp_Strains <- getMatrixPostHoc(postHocImp)
+myMatpostHocImpp_Strains
+write.csv(myMatpostHocImp, "../figures/SupplTableImp.csv")
 
 ## NB. translate back 0.01
 transValuesImp <- seq(0.01,0.26, 0.05)
 as.character(transValuesImp - 0.01)
 realValuesImpLabels <- c("0%", "5%", "10%", "15%", "20%", "25%")
 
-plotI_F0_subsp <- plot_model(modImpSubsp, type = "int",dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
+plotI_F0_subsp <- plot_model(modImpSubspFULL, type = "int",dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
   scale_color_manual(values = c("blue","red"),
                      name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
   xlab("Eimeria species") +
-  ggtitle("Impact on host health") +
-  ylab("(predicted) maximum weight loss") +
-  scale_y_continuous(breaks = transValuesImp, labels = realValuesImpLabels)+
+  ggtitle("Maximum weight loss \n(mean and standard deviation)") +
+  scale_y_continuous(breaks = transValuesImp, labels = realValuesImpLabels, 
+                     name = "(predicted) max weight loss compared to day of infection")+
   theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
   geom_text(aes(x=posx.1,y=0,label=getNs("relWL", summaryDF108mice,
                                          "Mouse_subspecies", "Eimeria_species")),vjust=0)
 plotI_F0_subsp
 
-plotI_F0_strains <- plot_model(modImpStrain, type = "int",dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
+plotI_F0_strains <- plot_model(modImpStrainFULL, type = "int",dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
   scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
                      name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
   xlab("Eimeria isolate") +
-  ggtitle("Impact on host health") +
-  ylab("(predicted) maximum weight loss") +
-  scale_y_continuous(breaks = transValuesImp, labels = realValuesImpLabels)+
+  ggtitle("Maximum weight loss \n(mean and standard deviation)") +
+  scale_y_continuous(breaks = transValuesImp, labels = realValuesImpLabels, 
+                     name = "(predicted) max weight loss compared to day of infection")+
   theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
   geom_text(aes(x=posx.2,y=0,label=getNs("relWL", summaryDF108mice)),vjust=0)
 plotI_F0_strains
@@ -385,47 +384,39 @@ plotI_F0_strains
 ###############
 ## Tolerance ##
 ###############
-modTolSubspecies <- lm(ToleranceIndex ~ Eimeria_species*Mouse_subspecies, data = summaryDF108mice)
-anova(modTolSubspecies)
+modTolSubspeciesFULL <- lm(ToleranceIndex ~ Eimeria_species*Mouse_subspecies, data = summaryDF108mice)
+modTolSubspecies_Para <- lm(ToleranceIndex ~ Mouse_subspecies, data = summaryDF108mice)
+modTolSubspecies_Mous <- lm(ToleranceIndex ~ Eimeria_species, data = summaryDF108mice)
+modTolSubspecies_inter <- lm(ToleranceIndex ~ Eimeria_species+Mouse_subspecies, data = summaryDF108mice)
 
-coef(modTolSubspecies)
+myLRTsignificanceFactors(modTolSubspeciesFULL, modTolSubspecies_Para, modTolSubspecies_Mous, modTolSubspecies_inter)
 
-length(na.omit(summaryDF108mice$ToleranceIndex))
-modTolStrain <- lm(ToleranceIndex ~ infection_isolate*Mouse_genotype, data = summaryDF108mice)
-anova(modTolStrain)
+## posthoc
+modTolSubspformulticomp <- lm(ToleranceIndex ~ intFacSPECIES, data = summaryDF108mice)
+postHocTolSubsp <- summary(glht(modTolSubspformulticomp, linfct=mcp(intFacSPECIES = "Tukey")))
+myMatpostHoc_Tol_Subsp<- getMatrixPostHoc(postHocTolSubsp)
+write.csv(myMatpostHoc_Tol_Subsp, "../figures/TableTol.csv")
 
+## part 2 strains level
+modTolStrainFULL <- lm(ToleranceIndex ~ infection_isolate*Mouse_genotype, data = summaryDF108mice)
+modTolStrain_Para <- lm(ToleranceIndex ~ Mouse_genotype, data = summaryDF108mice)
+modTolStrain_Mous <- lm(ToleranceIndex ~ infection_isolate, data = summaryDF108mice)
+modTolStrain_inter <- lm(ToleranceIndex ~ infection_isolate+Mouse_genotype, data = summaryDF108mice)
 
-
-TukeyHSD(modTolStrain)
-# Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg64 (E. ferrisi):MMm_F0 (Pw-Pw)     0.0276440
-# Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg64 (E. ferrisi):MMm_F0 (Bu-Bu)     0.0187152
-# Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg88 (E. falciformis):MMd_F0 (St-St) 0.0197022
-# Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg139 (E. ferrisi):MMd_F0 (St-St)    0.0009261
-# Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg88 (E. falciformis):MMd_F0 (Sc-Sc) 0.0385139
-# Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg64 (E. ferrisi):MMd_F0 (Sc-Sc)     0.0068948
-# Brandenburg88 (E. falciformis):MMm_F0 (Pw-Pw)-Brandenburg64 (E. ferrisi):MMd_F0 (St-St)     0.0008689
+myLRTsignificanceFactors(modTolStrainFULL, modTolStrain_Para, modTolStrain_Mous, modTolStrain_inter)
 
 ## post-hoc Tukey test -> for lm should be the same results with TukeyHSD and glht: indeed :) 
-modTolStrainformulticomp <- lm(ToleranceIndex ~ intFac, data = summaryDF108mice)
-  postHocTol <- summary(glht(modTolStrainformulticomp, linfct=mcp(intFac = "Tukey")))
-# Results (significant only)
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (Sc-Sc) == 0        <0.01 ** 
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg88 (E. falciformis).MMd_F0 (Sc-Sc) == 0   0.0356 *  
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg139 (E. ferrisi).MMd_F0 (St-St) == 0       <0.01 ***
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMd_F0 (St-St) == 0        <0.01 ***
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg88 (E. falciformis).MMd_F0 (St-St) == 0   0.0185 *  
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMm_F0 (Bu-Bu) == 0       0.0169 *  
-# Brandenburg88 (E. falciformis).MMm_F0 (Pw-Pw) - Brandenburg64 (E. ferrisi).MMm_F0 (Pw-Pw) == 0       0.0256 *  
-
-myMatpostHocTol<- getFullMatrix(postHocTol)
-write.csv(myMatpostHocTol, "../figures/supTablePostHocTol.csv")
+modTolStrainformulticomp <- lm(ToleranceIndex ~ intFacSTRAINS, data = summaryDF108mice)
+postHocTolStrains <- summary(glht(modTolStrainformulticomp, linfct=mcp(intFacSTRAINS = "Tukey")))
+myMatpostHocToStrainsl<- getMatrixPostHoc(postHocTolStrains)
+write.csv(myMatpostHocToStrainsl, "../figures/supTableTol.csv")
 
 plotT_F0_subsp <- plot_model(modTolSubspecies, type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
   scale_color_manual(values = c("blue", "red"),
                      name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
   xlab("Eimeria species") +
-  ylab("(predicted) Tolerance index")+
-  ggtitle("Tolerance") +
+  ggtitle("Tolerance index") +
+  scale_y_continuous("(predicted) tolerance index")+
   theme(axis.title.x = element_text(hjust=1), axis.text = element_text(size=13))+
   geom_text(aes(x=posx.1,y=0.4,label=getNs("ToleranceIndex", summaryDF108mice,
                                            "Mouse_subspecies", "Eimeria_species")),vjust=0)
@@ -435,8 +426,8 @@ plotT_F0_strain <- plot_model(modTolStrain, type = "int", dot.size = 4, dodge = 
   scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
                      name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
   xlab("Eimeria isolate") +
-  ylab("(predicted) Tolerance index")+
-  ggtitle("Tolerance") +
+  ggtitle("Tolerance index") +
+  scale_y_continuous("(predicted) tolerance index")+
   theme(axis.title.x = element_text(hjust=1), axis.text = element_text(size=13))+
   geom_text(aes(x=posx.2,y=0.4,label=getNs("ToleranceIndex", summaryDF108mice)),vjust=0)
 plotT_F0_strain
@@ -468,7 +459,7 @@ pdf(file = "../figures/Fig4.pdf",
 Fig4
 dev.off()
 
-# Pretty table outputs
+  # Pretty table outputs
 # library(stargazer)
 # stargazer(modResSubsp, modImpSubsp, modTolSubspecies)#,  type = "html")
 # stargazer(modResStrain, modImpStrain, modTolStrain,  type = "html")
@@ -541,8 +532,8 @@ ggplot(summaryDF108mice, aes(x = ResistanceIndex, y = ToleranceIndex)) +
                                ymin = ToleranceIndexMean - ToleranceIndexSd, 
                                ymax = ToleranceIndexMean + ToleranceIndexSd)) +
   geom_errorbarh(data = gd, aes(x = ResistanceIndexMean, y = ToleranceIndexMean, col = Mouse_genotype,
-                               xmin = ResistanceIndexMean - ResistanceIndexSd, 
-                               xmax = ResistanceIndexMean + ResistanceIndexSd)) +
+                                xmin = ResistanceIndexMean - ResistanceIndexSd, 
+                                xmax = ResistanceIndexMean + ResistanceIndexSd)) +
   theme_bw()+
   scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
   scale_fill_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
@@ -563,7 +554,7 @@ ggplot(rawDF108mice, aes(x = oocysts.per.g.mouse, y =relativeWeight,
   scale_fill_manual(values = c(1,2,3)) +
   scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
   scale_shape_manual(values = c(15,16,10)) 
-  
+
 # Bonus: Disease trajectory?
 
 # NB quite a bunch of animals died before end
