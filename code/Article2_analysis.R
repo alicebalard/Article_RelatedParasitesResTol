@@ -459,11 +459,6 @@
   Fig4
   dev.off()
   
-    # Pretty table outputs
-  # library(stargazer)
-  # stargazer(modResSubsp, modImpSubsp, modTolSubspecies)#,  type = "html")
-  # stargazer(modResStrain, modImpStrain, modTolStrain,  type = "html")
-  
   ### Second part: correlation resistance / tolerance
   
   # Calculate mean per group
@@ -508,7 +503,7 @@
   # https://stats.idre.ucla.edu/r/seminars/interactions-r/
   # Test the difference between slopes:
   modResTol <- lm(formula = ToleranceIndex ~ ResistanceIndex * Eimeria_species, data = summaryDF108mice)
-  
+  modResTol
   summary(modResTol)
   #p-value of the t-statistic for the interaction between ResistanceIndex and Eimeria_species: 1.39e-05 ***
   
@@ -516,63 +511,22 @@
   # The interaction ResistanceIndex * Eimeria_species is significant, which suggests
   # that the relationship of ToleranceIndex by ResistanceIndex does vary by Eimeria spieces
   
+  modResTolA <- lm(formula = ToleranceIndex ~ ResistanceIndex * Eimeria_species, data = summaryDF108mice)
+  modResTolB <- lm(formula = ToleranceIndex ~ ResistanceIndex + Eimeria_species, data = summaryDF108mice)
+  modResTolC <- lm(formula = ToleranceIndex ~ ResistanceIndex, data = summaryDF108mice)
+  modResTolD <- lm(formula = ToleranceIndex ~ Eimeria_species, data = summaryDF108mice)
+  
+  # signif interaction:
+  homemadeGtest(modResTolA, modResTolB)
+  # signif eimeria:
+  homemadeGtest(modResTolA, modResTolC)
+  # signif resistance index:
+  homemadeGtest(modResTolA, modResTolD)
+  
   # Since our goal is to obtain simple slopes of parasite:
   library(lsmeans)
   emtrends(modResTol, ~ Eimeria_species, var="ResistanceIndex")
   
-  # The 95% confidence interval does not contain zero for females but contains zero for males, so the simple slope is significant for females but not for males.
-  
-  # plot with sd 
-  ggplot(summaryDF108mice, aes(x = ResistanceIndex, y = ToleranceIndex)) +
-    geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = Eimeria_species)) +
-    geom_point(alpha = .4, aes(col = Mouse_genotype, fill = Mouse_genotype, shape = infection_isolate), size = 4) +
-    geom_point(data = gd, aes(x = ResistanceIndexMean, y = ToleranceIndexMean,
-                              fill = Mouse_genotype, shape = infection_isolate), size = 10) +
-    geom_errorbar(data = gd, aes(x = ResistanceIndexMean, y = ToleranceIndexMean, col = Mouse_genotype,
-                                 ymin = ToleranceIndexMean - ToleranceIndexSd, 
-                                 ymax = ToleranceIndexMean + ToleranceIndexSd)) +
-    geom_errorbarh(data = gd, aes(x = ResistanceIndexMean, y = ToleranceIndexMean, col = Mouse_genotype,
-                                  xmin = ResistanceIndexMean - ResistanceIndexSd, 
-                                  xmax = ResistanceIndexMean + ResistanceIndexSd)) +
-    theme_bw()+
-    scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
-    scale_fill_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
-    scale_shape_manual(values = c(24,22,21)) +
-    ylab(label = "Tolerance index") +
-    scale_x_continuous(name = "Resistance index")
-  
-  ##########
-  # Some toy
-  rawDF108mice$oocysts.per.g.mouse <- rawDF108mice$oocysts.per.tube / rawDF108mice$weight
-  
-  ggplot(rawDF108mice, aes(x = oocysts.per.g.mouse, y =relativeWeight,
-                           color = Mouse_genotype, shape = infection_isolate, fill = infection_isolate)) +
-    geom_smooth(method = "lm")+
-    # geom_point() +
-    # scale_x_log10()+
-    theme_bw()+
-    scale_fill_manual(values = c(1,2,3)) +
-    scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
-    scale_shape_manual(values = c(15,16,10)) 
-  
-  # Bonus: Disease trajectory?
-  
-  # NB quite a bunch of animals died before end
-  
-  infDF <- rawDF108mice %>%
-    dplyr::group_by(Mouse_genotype, infection_isolate, dpi)%>%
-    dplyr::summarise(meanOO = mean(oocysts.per.tube, na.rm = T),
-                     meanWR = mean(weightRelativeToInfection, na.rm = T)) %>%
-    as.data.frame()
-  
-  infDF$group <- paste(infDF$Mouse_genotype, infDF$infection_isolate, sep = "_")
-  
-  ggplot(infDF, aes(x = meanOO , y =meanWR, col = as.factor(dpi), group = group)) +
-    geom_point() + 
-    geom_path() +
-    facet_grid(infection_isolate~Mouse_genotype) +
-    scale_x_log10() +
-    geom_hline(yintercept = 100) +
-    geom_label(aes(label = dpi))
-  
+  # The 95% confidence interval does not contain zero for E. falciformis but contains zero
+  # for E. ferrisi, so the simple slope is significant for E. falciformis but not for E. ferrisi
   
