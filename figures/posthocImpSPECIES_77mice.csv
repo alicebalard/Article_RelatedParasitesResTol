@@ -1,0 +1,5 @@
+"","E.ferrisi.M.m.dom","E.falciformis.M.m.dom","E.ferrisi.M.m.mus","E.falciformis.M.m.mus"
+"E.ferrisi.M.m.dom","","est:0.36, Std.Error:0.23","est:0.23, Std.Error:0.18","est:0.94, Std.Error:0.22"
+"E.falciformis.M.m.dom","z value:1.57, Pr(>|z|):0.39","","est:-0.13, Std.Error:0.23","est:0.58, Std.Error:0.26"
+"E.ferrisi.M.m.mus","z value:1.31, Pr(>|z|):0.55","z value:-0.54, Pr(>|z|):0.95","","est:0.71, Std.Error:0.22"
+"E.falciformis.M.m.mus","z value:4.34, Pr(>|z|):< 0.001","z value:2.23, Pr(>|z|):0.11","z value:3.24, Pr(>|z|):< 0.01",""
