@@ -498,7 +498,7 @@ get_plotT_SPECIES <- function(dataframe){
     scale_color_manual(values = c("blue", "red"),
                        name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
     xlab("Eimeria species") +
-    ggtitle("Tolerance index") +
+    ggtitle("Tolerance index \n(mean and standard deviation)") +
     scale_y_continuous("(predicted) tolerance index")+
     theme(axis.title.x = element_text(hjust=1), axis.text = element_text(size=13))+
     geom_text(aes(x=posx.1,y=0.4,label=getNs("ToleranceIndex", dataframe,
@@ -513,7 +513,7 @@ get_plotT_STRAINS <- function(dataframe){
     scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
                        name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
     xlab("Eimeria isolate") +
-    ggtitle("Tolerance index") +
+    ggtitle("Tolerance index \n(mean and standard deviation)") +
     scale_y_continuous("(predicted) tolerance index")+
     theme(axis.title.x = element_text(hjust=1), axis.text = element_text(size=13))+
     geom_text(aes(x=posx.2,y=0.4,label=getNs("ToleranceIndex", dataframe)),vjust=0)
@@ -577,7 +577,7 @@ dev.off()
 library(ggplot2)
 library(dplyr)
 
-# Create a group-means data set
+  # Create a group-means data set
 gd <- summaryDF108mice %>%
   group_by(Mouse_genotype, infection_isolate) %>% 
   summarise(
@@ -636,8 +636,61 @@ homemadeGtest(modResTolA, modResTolD)
 
 # Since our goal is to obtain simple slopes of parasite:
 library(lsmeans)
-emtrends(modResTol, ~ Eimeria_species, var="ResistanceIndex")
+emtrends(modResTolA, ~ Eimeria_species, var="ResistanceIndex")
 
 # The 95% confidence interval does not contain zero for E. falciformis but contains zero
 # for E. ferrisi, so the simple slope is significant for E. falciformis but not for E. ferrisi
 
+########### Remove the outlier:
+
+summaryDF_rmoutlier <- summaryDF108mice[!summaryDF108mice$ResistanceIndex < 0.25 & !is.na(summaryDF108mice$ResistanceIndex),]
+
+modResTolA2 <- lm(formula = ToleranceIndex ~ ResistanceIndex * Eimeria_species, data = summaryDF_rmoutlier)
+modResTolB2 <- lm(formula = ToleranceIndex ~ ResistanceIndex + Eimeria_species, data = summaryDF_rmoutlier)
+modResTolC2 <- lm(formula = ToleranceIndex ~ ResistanceIndex, data = summaryDF_rmoutlier)
+modResTolD2 <- lm(formula = ToleranceIndex ~ Eimeria_species, data = summaryDF_rmoutlier)
+
+# signif interaction:
+homemadeGtest(modResTolA2, modResTolB2)
+# signif eimeria:
+homemadeGtest(modResTolA2, modResTolC2)
+# signif resistance index:
+homemadeGtest(modResTolA2, modResTolD2)
+
+# Since our goal is to obtain simple slopes of parasite:
+emtrends(modResTolA2, ~ Eimeria_species, var="ResistanceIndex")
+
+########### Remove the 31 unclear mice:
+
+modResTolA3 <- lm(formula = ToleranceIndex ~ ResistanceIndex * Eimeria_species, data = SUBsummaryDF77mice)
+modResTolB3 <- lm(formula = ToleranceIndex ~ ResistanceIndex + Eimeria_species, data = SUBsummaryDF77mice)
+modResTolC3 <- lm(formula = ToleranceIndex ~ ResistanceIndex, data = SUBsummaryDF77mice)
+modResTolD3 <- lm(formula = ToleranceIndex ~ Eimeria_species, data = SUBsummaryDF77mice)
+
+# signif interaction:
+homemadeGtest(modResTolA3, modResTolB3)
+# signif eimeria:
+homemadeGtest(modResTolA3, modResTolC3)
+# signif resistance index:
+homemadeGtest(modResTolA3, modResTolD3)
+
+# Since our goal is to obtain simple slopes of parasite:
+emtrends(modResTolA3, ~ Eimeria_species, var="ResistanceIndex")
+
+restolplot77 <- ggplot(SUBsummaryDF77mice, aes(x = ResistanceIndex, y = ToleranceIndex)) +
+  geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = Eimeria_species)) +
+  geom_point(alpha = .4, aes(col = Mouse_genotype, fill = Mouse_genotype, shape = infection_isolate), size = 4) +
+  geom_point(data = gd, aes(x = ResistanceIndexMean, y = ToleranceIndexMean,
+                            fill = Mouse_genotype, shape = infection_isolate), size = 10) +
+  theme_bw()+
+  scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
+  scale_fill_manual(values = c("blue", "cornflowerblue", "red4", "indianred1")) +
+  scale_shape_manual(values = c(24,22,21)) +
+  ylab(label = "Tolerance index") +
+  scale_x_continuous(name = "Resistance index")
+restolplot77
+
+pdf("../figures/suppleResTolPlot77mice.pdf", width = 12, height = 9)
+restolplot77  
+dev.off()
+  
