@@ -87,17 +87,11 @@ ALL_summary[ALL_summary$EH_ID %in% c(m1, m2), c("Mouse_genotype", "infection_iso
   dplyr::group_by(Mouse_genotype,infection_isolate) %>%
   dplyr::summarize(sum=n()) 
 # 10 animals didn't have collection of oocysts at peak day (4 Bu-Bu E88 + 1 Pw-Pw E88) -> set to NA
-ALL_summary$peak.oocysts.per.g.mouse[ALL_summary$EH_ID %in% c(m1,m2)] <- NA
+ALL_summary$max.OPG[ALL_summary$EH_ID %in% c(m1,m2)] <- NA
 
 ##########################
 #### Finalize dataset #### 
 ##########################
-
-# Calculate tolerance (inverse)
-ALL_summary$invtolerance <- ALL_summary$relWL / ALL_summary$peak.oocysts.per.g.mouse
-
-table(is.na(ALL_summary$invtolerance))
-
 ALL_summary_F0 <- ALL_summary[grep("F0", ALL_summary$Mouse_genotype),]
 ALL_summary_F1 <- ALL_summary[grep("F1", ALL_summary$Mouse_genotype),]
 
@@ -108,16 +102,21 @@ table(conta$infection_isolate)
 # full data used for Article 2
 rawDF108mice <- DF_all[grep("F0", DF_all$Mouse_genotype),]
 
-# calculate weight retained per day
+# calculate relative weight loss in individuals
 d <- rawDF108mice[rawDF108mice$dpi == 0., c("weight", "EH_ID")]
-names(d)[1] <- "weightdpi0"
+names(d)[1] <- "startingWeight"
 rawDF108mice <- merge(d, rawDF108mice)
-rawDF108mice$weightRelativeToInfection <- rawDF108mice$weight / rawDF108mice$weightdpi0 * 100
+rawDF108mice$relWL <- (rawDF108mice$startingWeight - rawDF108mice$weight)/rawDF108mice$startingWeight
+rawDF108mice$relWL[rawDF108mice$relWL < 0] <- 0
 
 # Rename levels
 length(unique(rawDF108mice$EH_ID))
 levels(rawDF108mice$infection_isolate) <- c("Brandenburg139 (E. ferrisi)",
                                             "Brandenburg64 (E. ferrisi)", "Brandenburg88 (E. falciformis)")
+
+#####################################################
+#### Clean summary table, 1 line per individual ####
+#####################################################
 # summary data
 summaryDF108mice <- ALL_summary_F0
 summaryDF108mice$Mouse_genotype <- droplevels(factor(summaryDF108mice$Mouse_genotype))
@@ -128,8 +127,7 @@ summaryDF108mice$Eimeria_species <- as.factor(summaryDF108mice$Eimeria_species)
 summaryDF108mice$Eimeria_species <- relevel(summaryDF108mice$Eimeria_species, "E.ferrisi")
 
 length(na.omit(summaryDF108mice$relWL))# 108 F0 mice
-length(na.omit(summaryDF108mice$peak.oocysts.per.g.mouse))# 99 F0 mice
-length(na.omit(summaryDF108mice$invtolerance))# 99 F0 mice
+length(na.omit(summaryDF108mice$max.OPG))# 99 F0 mice
 
 ## Set infection group (group 1 had anthelminthics, did not kill worms, stopped after: test effect)
 summaryDF108mice$batch <- summaryDF108mice$Exp_ID
@@ -137,6 +135,5 @@ levels(summaryDF108mice$batch) <- c("B1", "B2", "B3", "B4", "B5", "B6")
 
 summaryDF108mice$anth<- FALSE
 summaryDF108mice$anth[summaryDF108mice$batch %in% "B1"] <- TRUE
-
 
 ### The end ###

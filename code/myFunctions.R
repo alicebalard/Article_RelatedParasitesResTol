@@ -156,7 +156,9 @@ makeSummaryTable <- function(df){
   names(Y)[names(Y) %in% "weight"] = "weight_at_dpi_max.oocysts.per.tube"
   names(Y)[names(Y) %in% "oocysts.per.tube"] = "max.oocysts.per.tube"
   Y$max.OPG <- Y$max.oocysts.per.tube / Y$fecweight
-  # sum oocysts shed along full infection
+  #round
+  Y$max.OPG <- round(Y$max.OPG)
+    # sum oocysts shed along full infection
   Z <- as.data.frame(
     df %>% dplyr::group_by(EH_ID) %>%
       dplyr::summarise(sumoocysts.per.tube = sum(oocysts.per.tube, na.rm = T)))
@@ -166,12 +168,7 @@ makeSummaryTable <- function(df){
   # Calculate relative weight loss
   fullDF$relWL <- (fullDF$startingWeight - fullDF$minweight)/fullDF$startingWeight
   fullDF$relWL[fullDF$relWL < 0] <- 0
-  
-  # calculate the peak oocysts per g of mouse
-  fullDF$peak.oocysts.per.g.mouse <- 
-    round(fullDF$max.oocysts.per.tube /
-            fullDF$weight_at_dpi_max.oocysts.per.tube)
-  
+
   return(fullDF)
 }
 
@@ -224,6 +221,7 @@ calculateOPG <- function(ExpeDF){
   ## If we don't have the fecal weight BUT we counted in Neubauer chamber 0, then OPG = 0
   ExpeDF$oocysts.per.tube[ExpeDF$fecweight == 0 & ExpeDF$mean_Neubauer == 0] <- 0
   ExpeDF$OPG[ExpeDF$fecweight == 0 & ExpeDF$mean_Neubauer == 0] <- 0
+  ExpeDF$OPG <- round(ExpeDF$OPG)
   return(ExpeDF)
 }
 

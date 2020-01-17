@@ -73,12 +73,10 @@ aggregate(d$dpi,
           function(x) {paste(length(x), median(x), round(sd(x),2))})
 
 ###### Course of infection FIGURE 2 ######
-rawDF108mice$parasiteDensity <- rawDF108mice$oocysts.per.tube / rawDF108mice$weight
-
 forplot <- rawDF108mice %>%
   group_by(infection_isolate, dpi) %>%
-  summarise(mean = mean(parasiteDensity*10e-6, na.rm = TRUE),
-            sd = sd(parasiteDensity*10e-6, na.rm = TRUE),
+  summarise(mean = mean(OPG*10e-6, na.rm = TRUE),
+            sd = sd(OPG*10e-6, na.rm = TRUE),
             n = n()) %>%
   mutate(se = sd / sqrt(n),
          lower.ci = mean - qt(1 - (0.05 / 2), n - 1) * se,
@@ -88,10 +86,11 @@ F2.1 <- ggplot(forplot, aes(dpi, mean, group = infection_isolate, col = infectio
   geom_point(size = 3) +
   geom_line() +
   geom_errorbar(aes(ymin = lower.ci, ymax = upper.ci), width = .2)+
-  ylab("parasite density (10e6 oocysts per mouse gram)") +
+  ylab("OPG (10e6)") +
   scale_x_continuous(breaks = 0:11, name = "days post infection") +
   theme(legend.position = c(0.25, 0.8)) +
   labs(color = "Eimeria isolate") 
+F2.1
 
 forplot2 <- rawDF108mice %>%
   group_by(infection_isolate, dpi) %>%
@@ -111,6 +110,7 @@ F2.2 <- ggplot(forplot2, aes(dpi, mean, group = infection_isolate,
   scale_x_continuous(breaks = 0:11, name = "days post infection") +
   theme(legend.position = c(0.25, 0.2)) +
   labs(color = "Eimeria isolate") 
+F2.2
 
 library(cowplot)
 Fig2 <- plot_grid(F2.1, F2.2,
@@ -130,25 +130,9 @@ cor(summaryDF108mice$sumoocysts.per.tube , summaryDF108mice$max.oocysts.per.tube
 ########## Define our indexes and their distribution ##########
 ###############################################################
 
-## RESISTANCE
-# for models, inverse of parasite density:
-range(summaryDF108mice$peak.oocysts.per.g.mouse, na.rm = TRUE)
-
-# for plots, invert + translation positive (300000) / 10000:
-getResistanceIndex <- function(x){
-  y = (- x + 300000)/300000
-  return(y)}
-
-summaryDF108mice$ResistanceIndex <- getResistanceIndex(summaryDF108mice$peak.oocysts.per.g.mouse)
-SUBsummaryDF77mice$ResistanceIndex <- getResistanceIndex(SUBsummaryDF77mice$peak.oocysts.per.g.mouse)
-
-plotChoiceResIndex <- ggplot(summaryDF108mice, aes(peak.oocysts.per.g.mouse, ResistanceIndex)) + 
-  geom_point(size = 4, pch =21) + 
-  ylab("Resistance Index") +
-  xlab("Parasite density (oocysts per mouse gram) at peak day")
-plotChoiceResIndex
-
-xRes <- as.numeric(na.omit(summaryDF108mice$peak.oocysts.per.g.mouse))
+## RESISTANCE: inverse of OPG
+## We round
+xRes <- round(as.numeric(na.omit(summaryDF108mice$max.OPG)))
 hist(xRes, breaks = 100)
 descdist(xRes)
 #pdf("../figures/supfig1.1.pdf")
@@ -170,19 +154,19 @@ summaryDF108mice$impact <- summaryDF108mice$relWL + 0.01
 SUBsummaryDF77mice$impact <- SUBsummaryDF77mice$relWL + 0.01
 
 ## TOLERANCE
-range(summaryDF108mice$relWL / summaryDF108mice$peak.oocysts.per.g.mouse, na.rm = T)
-range(summaryDF108mice$relWL / summaryDF108mice$peak.oocysts.per.g.mouse + 1e-8, na.rm = T)
-range(log10(summaryDF108mice$relWL / summaryDF108mice$peak.oocysts.per.g.mouse + 1e-8), na.rm = T)
-range(log10(summaryDF108mice$relWL / summaryDF108mice$peak.oocysts.per.g.mouse + 1e-8)/-1, na.rm = T)
-range(log10(summaryDF108mice$relWL / summaryDF108mice$peak.oocysts.per.g.mouse + 1e-8)/-8, na.rm = T)
+range(summaryDF108mice$relWL / summaryDF108mice$max.OPG, na.rm = T)
+range(summaryDF108mice$relWL / summaryDF108mice$max.OPG + 1e-8, na.rm = T)
+range(log10(summaryDF108mice$relWL / summaryDF108mice$max.OPG + 1e-8), na.rm = T)
+range(log10(summaryDF108mice$relWL / summaryDF108mice$max.OPG + 1e-8)/-1, na.rm = T)
+range(log10(summaryDF108mice$relWL / summaryDF108mice$max.OPG + 1e-8)/-8, na.rm = T)
 
 summaryDF108mice$ToleranceIndex <- log10(
-  summaryDF108mice$relWL / summaryDF108mice$peak.oocysts.per.g.mouse + 1e-8) / (-8)
+  summaryDF108mice$relWL / summaryDF108mice$max.OPG + 1e-8) / (-8)
 SUBsummaryDF77mice$ToleranceIndex <- log10(
-  SUBsummaryDF77mice$relWL / SUBsummaryDF77mice$peak.oocysts.per.g.mouse + 1e-8) / (-8)
+  SUBsummaryDF77mice$relWL / SUBsummaryDF77mice$max.OPG + 1e-8) / (-8)
 
 plotChoiceTolIndex <- ggplot(summaryDF108mice, 
-                             aes(x=peak.oocysts.per.g.mouse, y =relWL, fill = ToleranceIndex))+
+                             aes(x=max.OPG, y =relWL, fill = ToleranceIndex))+
   geom_point(size = 4, pch =21) +
   scale_fill_gradient(low = "white", high = "black") +
   xlab("Parasite density (oocysts per mouse gram) at peak day") +
@@ -209,13 +193,14 @@ findGoodDist(x = xTol, distribs = c("normal"),
              distribs2 = c("norm"))
 #dev.off()
 
-summaryDF108mice[is.na(summaryDF108mice$ToleranceIndex), c("EH_ID", "Mouse_genotype", "relWL", "peak.oocysts.per.g.mouse")]
+summaryDF108mice[is.na(summaryDF108mice$ToleranceIndex), 
+                 c("EH_ID", "Mouse_genotype", "relWL", "max.OPG")]
 # 9 mice died before peak
 #
 # pdf(file = "../figures/choiceIndexes.pdf", width = 10, height = 5)
-cowplot::plot_grid(plotChoiceResIndex,
-                   plotChoiceTolIndex,
-                   labels=c("A", "B"), label_size = 15)
+# cowplot::plot_grid(plotChoiceResIndex,
+#                    plotChoiceTolIndex,
+#                    labels=c("A", "B"), label_size = 15)
 # dev.off()
 
 ################################
@@ -252,15 +237,15 @@ SUBsummaryDF77mice$intFacSTRAINS <- interaction(SUBsummaryDF77mice$infection_iso
 testSignif <- function(dataframe, which, level){
   if(which == "RES"){
     if(level == "SPECIES"){
-      modFULL <- glm.nb(peak.oocysts.per.g.mouse ~ Eimeria_species*Mouse_subspecies, data = dataframe)
-      modPara <- glm.nb(peak.oocysts.per.g.mouse ~ Mouse_subspecies, data = dataframe)
-      modMous <- glm.nb(peak.oocysts.per.g.mouse ~ Eimeria_species, data = dataframe)
-      modinter <- glm.nb(peak.oocysts.per.g.mouse ~ Eimeria_species+Mouse_subspecies, data = dataframe)
+      modFULL <- glm.nb(max.OPG ~ Eimeria_species*Mouse_subspecies, data = dataframe)
+      modPara <- glm.nb(max.OPG ~ Mouse_subspecies, data = dataframe)
+      modMous <- glm.nb(max.OPG ~ Eimeria_species, data = dataframe)
+      modinter <- glm.nb(max.OPG ~ Eimeria_species+Mouse_subspecies, data = dataframe)
     } else if (level == "STRAINS"){
-      modFULL <- glm.nb(peak.oocysts.per.g.mouse ~ infection_isolate*Mouse_genotype, data = dataframe)
-      modPara <- glm.nb(peak.oocysts.per.g.mouse ~ Mouse_genotype, data = dataframe)
-      modMous <- glm.nb(peak.oocysts.per.g.mouse ~ infection_isolate, data = dataframe)
-      modinter <- glm.nb(peak.oocysts.per.g.mouse ~ infection_isolate+Mouse_genotype, data = dataframe)
+      modFULL <- glm.nb(max.OPG ~ infection_isolate*Mouse_genotype, data = dataframe)
+      modPara <- glm.nb(max.OPG ~ Mouse_genotype, data = dataframe)
+      modMous <- glm.nb(max.OPG ~ infection_isolate, data = dataframe)
+      modinter <- glm.nb(max.OPG ~ infection_isolate+Mouse_genotype, data = dataframe)
     }
   } else if (which == "IMP"){
     if(level == "SPECIES"){
@@ -293,7 +278,7 @@ testSignif <- function(dataframe, which, level){
 testPostHoc <- function(dataframe, which, level){
   if(level == "SPECIES"){
     if(which == "RES"){
-      mod_multicomp <- glm.nb(peak.oocysts.per.g.mouse ~ intFacSPECIES, data = dataframe)
+      mod_multicomp <- glm.nb(max.OPG ~ intFacSPECIES, data = dataframe)
     } else if(which == "IMP"){
       mod_multicomp <- survreg(Surv(impact)~intFacSPECIES, data = dataframe, dist="weibull")
     } else if(which == "TOL"){
@@ -303,7 +288,7 @@ testPostHoc <- function(dataframe, which, level){
   }
   if(level == "STRAINS"){
     if(which == "RES"){
-      mod_multicomp <- glm.nb(peak.oocysts.per.g.mouse ~ intFacSTRAINS, data = dataframe)
+      mod_multicomp <- glm.nb(max.OPG ~ intFacSTRAINS, data = dataframe)
     } else if(which == "IMP"){
       mod_multicomp <- survreg(Surv(impact)~intFacSTRAINS, data = dataframe, dist="weibull")
     } else if(which == "TOL"){
@@ -415,16 +400,18 @@ get_plotR_SPECIES <- function(dataframe){
              type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
     scale_color_manual(values = c("blue", "red"),
                        name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
-    ggtitle("Maximum oocysts density \n(mean and standard deviation)") +
-    scale_y_continuous("(predicted) maximum oocysts per mouse gram")+
+    ggtitle("Maximum OPG \n(mean and standard deviation)") +
+    scale_y_continuous("(predicted) maximum oocysts per gram of feces")+
     xlab("Eimeria species") +
     theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
-    geom_text(aes(x=posx.1,y=90000,label=getNs("peak.oocysts.per.g.mouse", dataframe, 
+    geom_text(aes(x=posx.1,y=90000,label=getNs("max.OPG", dataframe, 
                                                "Mouse_subspecies", "Eimeria_species")), vjust=0)
 }
 
 plotR_SPECIES <- get_plotR_SPECIES(summaryDF108mice)
+plotR_SPECIES
 plotR_SPECIES_77mice <- get_plotR_SPECIES(SUBsummaryDF77mice)
+plotR_SPECIES_77mice
 
 # plot marginal effects of interaction terms by isolates & strains
 posx.2 <- c(0.8+c(0,1/8,2/8,3/8),1.8+c(0,1/8,2/8,3/8),2.8+c(0,1/8,2/8,3/8))
@@ -438,9 +425,10 @@ get_plotR_STRAINS <- function(dataframe){
     ggtitle("Maximum oocysts density \n(mean and standard deviation)") +
     xlab("Eimeria isolate") +
     theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
-    geom_text(aes(x=posx.2,y=120000,label=getNs("peak.oocysts.per.g.mouse", dataframe)),vjust=0)
+    geom_text(aes(x=posx.2,y=120000,label=getNs("max.OPG", dataframe)),vjust=0)
 } 
 plotR_STRAINS <- get_plotR_STRAINS(summaryDF108mice)
+plotR_STRAINS
 plotR_STRAINS_77mice <- get_plotR_STRAINS(SUBsummaryDF77mice)
 
 ############
@@ -487,6 +475,7 @@ get_plotI_STRAINS <- function(dataframe){
 }
 
 plotI_STRAINS  <- get_plotI_STRAINS(summaryDF108mice)
+plotI_STRAINS
 plotI_STRAINS_77mice <- get_plotI_STRAINS(SUBsummaryDF77mice)
 
 ###############
@@ -501,10 +490,11 @@ get_plotT_SPECIES <- function(dataframe){
     ggtitle("Tolerance index \n(mean and standard deviation)") +
     scale_y_continuous("(predicted) tolerance index")+
     theme(axis.title.x = element_text(hjust=1), axis.text = element_text(size=13))+
-    geom_text(aes(x=posx.1,y=0.4,label=getNs("ToleranceIndex", dataframe,
+    geom_text(aes(x=posx.1,y=0.7,label=getNs("ToleranceIndex", dataframe,
                                              "Mouse_subspecies", "Eimeria_species")),vjust=0)
 }
 plotT_SPECIES <- get_plotT_SPECIES(summaryDF108mice)
+plotT_SPECIES
 plotT_SPECIES_77mice <- get_plotT_SPECIES(SUBsummaryDF77mice)
 
 get_plotT_STRAINS <- function(dataframe){
