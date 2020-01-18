@@ -24,6 +24,9 @@ calculateOPG <- function(ExpeDF){
   ## If we don't have the fecal weight BUT we counted in Neubauer chamber 0, then OPG = 0
   ExpeDF$oocysts.per.tube[ExpeDF$fecweight == 0 & ExpeDF$mean_Neubauer == 0] <- 0
   ExpeDF$OPG[ExpeDF$fecweight == 0 & ExpeDF$mean_Neubauer == 0] <- 0
+  ## If we don't have the fecal weight/have it at zero BUT we counted stuff: our bad, NAs, snif
+  ExpeDF$OPG[ExpeDF$OPG %in% Inf] <- NA
+  ## Round for later count data analysis. 0.5 oocysts makes no sense anyway!
   ExpeDF$OPG <- round(ExpeDF$OPG)
   return(ExpeDF)
 }
