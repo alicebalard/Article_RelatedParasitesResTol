@@ -48,10 +48,11 @@ makeSummaryTable <- function(df){
   Y <- as.data.frame(
     df %>% dplyr::group_by(EH_ID) %>%
       dplyr::slice(which.max(OPG)) %>%
-      dplyr::select(EH_ID, OPG, fecweight, dpi))
+      dplyr::select(EH_ID, OPG, oocysts.per.tube, fecweight, dpi))
   # time to parasite shedding peak
   names(Y)[names(Y) %in% "dpi"] = "dpi_max.OPG"
   names(Y)[names(Y) %in% "OPG"] = "max.OPG"
+  names(Y)[names(Y) %in% "oocysts.per.tube"] = "max.oocysts.per.tube"
   #round
   Y$max.OPG <- round(Y$max.OPG)
   # sum oocysts shed along full infection
