@@ -117,9 +117,9 @@ F2.2
 
 Fig2 <- cowplot::plot_grid(F2.1, F2.2,
                   labels=c("A", "B"), label_size = 20)
-#pdf(file = "../figures/Fig2.pdf", width = 10, height = 5)
-Fig2
-#dev.off()
+# pdf(file = "../figures/Fig2.pdf", width = 10, height = 5)
+# Fig2
+# dev.off()
 
 ## Correlation sum of oocysts / peak oocysts
 ggplot(art2al_SUMdf, aes(sumoocysts.per.tube, max.oocysts.per.tube)) + 
@@ -327,7 +327,7 @@ testSignif(SUBsummaryDF77mice, "TOL", "STRAINS")
 ####################
 
 # to avoid running these long test all the time
-doYouRun = "nope"
+doYouRun = "foncebebe"
 
 if (doYouRun == "foncebebe"){
   # Resistance
@@ -361,7 +361,7 @@ if (doYouRun == "foncebebe"){
 #################
 ## save output ##
 #################
-doYouSave = "nope"
+doYouSave = "foncebebe"
 if (doYouSave == "foncebebe"){
   # Resistance
   write.csv(getMatrixPostHoc(testPostHoc(art2al_SUMdf, "RES", "SPECIES")),
@@ -414,8 +414,8 @@ get_plotR_SPECIES <- function(dataframe){
              type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
     scale_color_manual(values = c("blue", "red"),
                        name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
-    ggtitle("Maximum parasite load \n(mean and standard deviation)") +
-    scale_y_continuous("(predicted) maximum oocysts per gram of feces (x10^6)", 
+    ggtitle("Maximum parasite load \n(mean and 95%CI)") +
+    scale_y_continuous("(predicted) maximum oocysts per gram of feces (x10e6)", 
                        breaks = seq(0, 2500000, 500000),
                        labels = seq(0, 2500000, 500000)/1000000)+
     xlab("Eimeria species") +
@@ -431,10 +431,10 @@ get_plotR_STRAINS <- function(dataframe){
              type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
     scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
                        name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
-    scale_y_continuous("(predicted) maximum oocysts per gram of feces (x10^6)", 
+    scale_y_continuous("(predicted) maximum oocysts per gram of feces (x10e6)", 
                        breaks = seq(0, 3500000, 500000),
                        labels = seq(0, 3500000, 500000)/1000000)+
-    ggtitle("Maximum parasite load \n(mean and standard deviation)") +
+    ggtitle("Maximum parasite load \n(mean and 95%CI)") +
     xlab("Eimeria isolate") +
     theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
     geom_text(aes(x=posx.2,y=120000,label=getNs("max.OPG", dataframe)),vjust=0)
@@ -469,7 +469,7 @@ get_plotI_SPECIES <- function(dataframe){
     scale_color_manual(values = c("blue","red"),
                        name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
     xlab("Eimeria species") +
-    ggtitle("Maximum weight loss \n(mean and standard deviation)") +
+    ggtitle("Maximum weight loss \n(mean and 95%CI)") +
     scale_y_continuous(breaks = transValuesImp, labels = realValuesImpLabels, 
                        name = "(predicted) maximum weight loss compared to day of infection")+
     theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
@@ -488,7 +488,7 @@ get_plotI_STRAINS <- function(dataframe){
     scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
                        name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
     xlab("Eimeria isolate") +
-    ggtitle("Maximum weight loss \n(mean and standard deviation)") +
+    ggtitle("Maximum weight loss \n(mean and 95%CI)") +
     scale_y_continuous(breaks = transValuesImp, labels = realValuesImpLabels, 
                        name = "(predicted) maximum weight loss compared to day of infection")+
     theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
@@ -508,7 +508,7 @@ get_plotT_SPECIES <- function(dataframe){
     scale_color_manual(values = c("blue", "red"),
                        name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
     xlab("Eimeria species") +
-    ggtitle("Tolerance index \n(mean and standard deviation)") +
+    ggtitle("Tolerance index \n(mean and 95%CI)") +
     scale_y_continuous("(predicted) tolerance index")+
     theme(axis.title.x = element_text(hjust=1), axis.text = element_text(size=13))+
     geom_text(aes(x=posx.1,y=0.7,label=getNs("ToleranceIndex", dataframe,
@@ -524,7 +524,7 @@ get_plotT_STRAINS <- function(dataframe){
     scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
                        name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
     xlab("Eimeria isolate") +
-    ggtitle("Tolerance index \n(mean and standard deviation)") +
+    ggtitle("Tolerance index \n(mean and 95%CI)") +
     scale_y_continuous("(predicted) tolerance index")+
     theme(axis.title.x = element_text(hjust=1), axis.text = element_text(size=13))+
     geom_text(aes(x=posx.2,y=0.7,label=getNs("ToleranceIndex", dataframe)),vjust=0)
@@ -534,13 +534,12 @@ plotT_STRAINS
 plotT_STRAINS_77mice <- get_plotT_STRAINS(SUBsummaryDF77mice)
 
 # Fig 3.
-Fig3 <- cowplot::plot_grid(
-  plotR_STRAINS + theme(legend.position = "none"),
-  plotI_STRAINS + theme(legend.position = "none"),
-  plotT_STRAINS+ theme(legend.position = "none"), 
-  plotT_STRAINS,
-  labels=c("A", "B", "C", "D"), label_size = 20)
-
+Fig3 <- cowplot::plot_grid(plotR_SPECIES + theme(legend.position = "none"),
+                           plotI_SPECIES + theme(legend.position = "none"),
+                           plotT_SPECIES + theme(legend.position = "none"), 
+                           plotT_SPECIES,
+                           labels=c("A", "B", "C", "D"), label_size = 20)
+  
 Fig3
 pdf(file = "../figures/Fig3.pdf",
     width = 9, height = 9)
@@ -548,12 +547,12 @@ Fig3
 dev.off()
 
 ## Fig 4
-Fig4 <- plot_grid(plotR_SPECIES + theme(legend.position = "none"),
-                  plotI_SPECIES + theme(legend.position = "none"),
-                  plotT_SPECIES + theme(legend.position = "none"), 
-                  plotT_SPECIES,
-                  labels=c("A", "B", "C", "D"), label_size = 20)
-
+Fig4 <-  cowplot::plot_grid(
+  plotR_STRAINS + theme(legend.position = "none"),
+  plotI_STRAINS + theme(legend.position = "none"),
+  plotT_STRAINS+ theme(legend.position = "none"), 
+  plotT_STRAINS,
+  labels=c("A", "B", "C", "D"), label_size = 20)
 Fig4
 
 pdf(file = "../figures/Fig4.pdf",
@@ -584,51 +583,96 @@ dev.off()
 
 ### Second part: correlation resistance / tolerance
 
-# Calculate mean per group
+# take the predictions from before 
+mydatx <- ggeffects::ggpredict(
+  model = testSignif(art2al_SUMdf, "RES", "SPECIES")$modfull, 
+  terms = c("Eimeria_species", "Mouse_subspecies"), ci.lvl = 0.95)
+names(mydatx)[2:5] <- paste0(names(mydatx)[2:5], "_OPG")
 
-# define the 8 groups
-art2al_SUMdf$group <- paste(art2al_SUMdf$Mouse_subspecies, art2al_SUMdf$Eimeria_species, sep = "_")
+mydaty <- ggeffects::ggpredict(
+  model = testSignif(art2al_SUMdf, "IMP", "SPECIES")$modfull, 
+  terms = c("Eimeria_species", "Mouse_subspecies"), ci.lvl = 0.95)
+names(mydaty)[2:5] <- paste0(names(mydaty)[2:5], "_WL")
 
-# Create a group-means data set
-gd <- art2al_SUMdf %>%
-  group_by(group, Mouse_subspecies, Eimeria_species) %>% 
-  summarise(
-    Wmean = mean(relWL, na.rm = T),
-    Wsd = sd(relWL, na.rm = T),
-    Wn = sum(!is.na(relWL)),
-    Omean = mean(max.OPG*10e-6, na.rm = T),
-    Osd = sd(max.OPG*10e-6, na.rm = T),
-    On = sum(!is.na(max.OPG))) %>%
-  mutate(Wse = Wsd / sqrt(Wn),
-         Wlower.ci = Wmean - qt(1 - (0.05 / 2), Wn - 1) * Wse,
-         Wupper.ci = Wmean + qt(1 - (0.05 / 2), Wn - 1) * Wse,
-         Ose = Osd / sqrt(On),
-         Olower.ci = Omean - qt(1 - (0.05 / 2), On - 1) * Ose,
-         Oupper.ci = Omean + qt(1 - (0.05 / 2), On - 1) * Ose)
+## NB. translate back 0.01 the y axis because we did 
+# art2al_SUMdf$impact <- art2al_SUMdf$relWL + 0.01
+mydaty$predicted_WL <- mydaty$predicted_WL - 0.01
+mydaty$conf.low_WL <- mydaty$conf.low_WL - 0.01
+mydaty$conf.high_WL <- mydaty$conf.high_WL - 0.01
 
-gd
-
-# if we want to add raw points
-# art2al_SUMdf$Omean <- art2al_SUMdf$max.OPG*10e-6
-# art2al_SUMdf$Wmean <- art2al_SUMdf$relWL
-# add: geom_point(data = art2al_SUMdf, alpha = .4) 
+mydat <- merge(data.frame(mydatx), data.frame(mydaty))
 
 # Trade-off plot
-Fig5_couplingplot <- ggplot(gd, aes(x = Omean, y = Wmean, col = Mouse_subspecies)) +
-  geom_errorbar(aes(ymin = Wlower.ci, ymax = Wupper.ci))+
-  geom_errorbarh(aes(xmin = Olower.ci, xmax = Oupper.ci))+
-  geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = Eimeria_species)) + 
+Fig5_couplingplot <- ggplot(mydat, aes(x = predicted_OPG, y = predicted_WL, col = group)) +
+  geom_errorbar(aes(ymin = conf.low_WL, ymax = conf.high_WL))+
+  geom_errorbarh(aes(xmin = conf.low_OPG, xmax = conf.high_OPG))+
+  geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = x)) + 
   theme_bw()+
   scale_color_manual(values = c("blue", "red")) +
-  ylab(label = "Minimum relative weight compared to day 0") +
-  scale_x_continuous(name = "maximum oocysts per gram of feces (x10^6)")+
-  scale_y_continuous(breaks = seq(0,0.20, 0.05), labels = c("0%", "5%", "10%", "15%", "20%"), 
-                       name = "(predicted) maximum weight loss compared to day of infection") +
-  ggtitle("Maximum weight loss = f(maximum parasite load) \n(mean and standard deviation)")
+  scale_x_log10(name = "(predicted) maximum oocysts per gram of feces")+
+  scale_y_continuous(name = "(predicted) maximum weight loss \ncompared to day of infection",
+                     breaks = seq(0,0.3, 0.05), 
+                     labels = c("0%", "5%", "10%", "15%", "20%", "25%", "30%")) +
+  ggtitle("Maximum weight loss = f(maximum parasite load) \n(mean and 95%CI)")
 
-pdf("../figures/Fig5_couplingplot.pdf", width = 12, height = 9)
+pdf("../figures/Fig5_couplingplot.pdf", width = 6, height = 5)
 Fig5_couplingplot  
 dev.off()
+
+# https://stats.idre.ucla.edu/r/seminars/interactions-r/
+# Test the difference between slopes (simplified):
+art2al_SUMdf$group <- paste0(art2al_SUMdf$Eimeria_species, "_", art2al_SUMdf$Mouse_subspecies)
+
+modO_W <- lm(formula = relWL ~ max.OPG * Eimeria_species, data = art2al_SUMdf)
+modO_W
+summary(modO_W)
+#p-value of the t-statistic for the interaction between ResistanceIndex and Eimeria_species: 1.39e-05 ***
+
+# The interaction term is significant, which suggests
+# that the relationship of relWL by maxOPG does vary by Eimeria spieces
+modO_WA <- lm(formula = relWL ~ max.OPG * Eimeria_species, data = art2al_SUMdf)
+modO_WB <- lm(formula = relWL ~ max.OPG + Eimeria_species, data = art2al_SUMdf)
+modO_WC <- lm(formula = relWL ~ max.OPG, data = art2al_SUMdf)
+modO_WD <- lm(formula = relWL ~ Eimeria_species, data = art2al_SUMdf)
+
+
+olB <- lm(formula = ToleranceIndex ~ ResistanceIndex + Eimeria_species, data = summaryDF108mice)
+modResTolC <- lm(formula = ToleranceIndex ~ ResistanceIndex, data = summaryDF108mice)
+modResTolD <- lm(formula = ToleranceIndex ~ Eimeria_species, data = summaryDF108mice)
+
+# signif interaction:
+homemadeGtest(modResTolA, modResTolB)
+# signif eimeria:
+homemadeGtest(modResTolA, modResTolC)
+# signif resistance index:
+homemadeGtest(modResTolA, modResTolD)
+
+# Since our goal is to obtain simple slopes of parasite:
+library(lsmeans)
+emtrends(modResTolA, ~ Eimeria_species, var="ResistanceIndex")
+
+# The 95% confidence interval does not contain zero for E. falciformis but contains zero
+# for E. ferrisi, so the simple slope is significant for E. falciformis but not for E. ferrisi
+
+########### Remove the outlier:
+
+summaryDF_rmoutlier <- summaryDF108mice[!summaryDF108mice$ResistanceIndex < 0.25 & !is.na(summaryDF108mice$ResistanceIndex),]
+
+modResTolA2 <- lm(formula = ToleranceIndex ~ ResistanceIndex * Eimeria_species, data = summaryDF_rmoutlier)
+modResTolB2 <- lm(formula = ToleranceIndex ~ ResistanceIndex + Eimeria_species, data = summaryDF_rmoutlier)
+modResTolC2 <- lm(formula = ToleranceIndex ~ ResistanceIndex, data = summaryDF_rmoutlier)
+modResTolD2 <- lm(formula = ToleranceIndex ~ Eimeria_species, data = summaryDF_rmoutlier)
+
+# signif interaction:
+homemadeGtest(modResTolA2, modResTolB2)
+# signif eimeria:
+homemadeGtest(modResTolA2, modResTolC2)
+# signif resistance index:
+homemadeGtest(modResTolA2, modResTolD2)
+
+# Since our goal is to obtain simple slopes of parasite:
+emtrends(modResTolA2, ~ Eimeria_species, var="ResistanceIndex")
+
 
 # for supp data
 SUBsummaryDF77mice$group <- paste(SUBsummaryDF77mice$Mouse_subspecies, SUBsummaryDF77mice$Eimeria_species, sep = "_")
@@ -658,10 +702,13 @@ Fig5_couplingplot <- ggplot(gd2, aes(x = Omean, y = Wmean, col = Mouse_subspecie
   scale_x_continuous(name = "maximum oocysts per gram of feces (x10^6)")+
   scale_y_continuous(breaks = seq(0,0.20, 0.05), labels = c("0%", "5%", "10%", "15%", "20%"), 
                      name = "(predicted) maximum weight loss compared to day of infection") +
-  ggtitle("Maximum weight loss = f(maximum parasite load) \n(mean and standard deviation)")
+  ggtitle("Maximum weight loss = f(maximum parasite load) \n(mean and 95%CI)")
 
 Fig5_couplingplot
 
 pdf("../figures/suppleResTolPlot77mice.pdf", width = 12, height = 9)
 restolplot77  
 dev.off()
+
+
+
