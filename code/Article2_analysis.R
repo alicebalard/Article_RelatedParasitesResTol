@@ -162,7 +162,7 @@ range(art2al_SUMdf$relWL / art2al_SUMdf$max.OPG + 1e-8, na.rm = T)
 range(log10(art2al_SUMdf$relWL / art2al_SUMdf$max.OPG + 1e-8), na.rm = T)
 range(log10(art2al_SUMdf$relWL / art2al_SUMdf$max.OPG + 1e-8)/-1, na.rm = T)
 range(log10(art2al_SUMdf$relWL / art2al_SUMdf$max.OPG + 1e-8)/-8, na.rm = T)
-hist(na.omit(log10(art2al_SUMdf$relWL / art2al_SUMdf$max.OPG + 1e-8)/-8), breaks = 100)
+    hist(na.omit(log10(art2al_SUMdf$relWL / art2al_SUMdf$max.OPG + 1e-8)/-8), breaks = 100)
 
 art2al_SUMdf$ToleranceIndex <- log10(
   art2al_SUMdf$relWL / art2al_SUMdf$max.OPG + 1e-8) / (-8)
@@ -192,7 +192,7 @@ xTol <- as.numeric(na.omit(art2al_SUMdf$ToleranceIndex))
 hist(xTol, breaks = 1000)
 descdist(xTol)
 
-#pdf("../figures/supfig1.3.pdf")
+  #pdf("../figures/supfig1.3.pdf")
 findGoodDist(x = xTol, distribs = c("normal"), 
              distribs2 = c("norm"))
 #dev.off()
