@@ -26,10 +26,10 @@ ipak <- function(pkg){
 ipak(list.of.packages)
 
 ## Reinstall the package in case I updated it
-devtools::install_github("alicebalard/parasiteLoad")
-library(parasiteLoad)
-devtools::install_github("vqv/ggbiplot")
-library(ggbiplot)
+# devtools::install_github("alicebalard/parasiteLoad")
+# library(parasiteLoad)
+# devtools::install_github("vqv/ggbiplot")
+# library(ggbiplot)
 
 ###### data cleaning ######
 DF_all<- merge(ExpeDF_003_4, ExpeDF_005, all = T)

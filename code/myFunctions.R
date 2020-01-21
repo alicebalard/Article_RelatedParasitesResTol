@@ -74,8 +74,8 @@ getMatrixPostHoc <- function(postHoc){
     i <- "< 0.01"
   } else {i <- round(i, 2)}}))
   
-  upperTriangle <- paste0("est:", round(postHoc$test$coefficients, 2), ", Std.Error:",round(postHoc$test$sigma, 2))
-  lowerTriangle <- paste0("z value:", round(postHoc$test$tstat, 2), ", Pr(>|z|):", pvalues)
+  upperTriangle <- paste0("est:", round(postHoc$test$coefficients, 2), ",\nStd.Error:",round(postHoc$test$sigma, 2))
+  lowerTriangle <- paste0("z value:", round(postHoc$test$tstat, 2), ",\nPr(>|z|):", pvalues)
   getMatrix <- function(postHoc, toFillUpWith){
     x <- strsplit(names(postHoc$test$coefficients), " - ")
     rownames <- as.character(unlist(lapply(x, `[[`, 1)))

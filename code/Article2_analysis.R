@@ -52,6 +52,14 @@ contaAnimals <- art2al_RAWdf[art2al_RAWdf$oocysts.per.tube > 0 & !is.na(art2al_R
 SUBsummaryDF77mice <- art2al_SUMdf[!art2al_SUMdf$EH_ID %in% contaAnimals &
                                          art2al_SUMdf$anth == FALSE,]
 
+## which mice?
+problemMice <- art2al_SUMdf[art2al_SUMdf$EH_ID %in% contaAnimals |
+               art2al_SUMdf$anth == TRUE,]
+
+table(problemMice$Mouse_genotype, problemMice$infection_isolate)
+  # 2 SCHUNT & 1 PWD falciformis, rest ferrisi
+table(art2al_SUMdf$Mouse_genotype, art2al_SUMdf$infection_isolate)
+
 ## Age of mice
 range(as.numeric(art2al_RAWdf$ageAtInfection))
 
@@ -198,7 +206,7 @@ findGoodDist(x = xTol, distribs = c("normal"),
 #dev.off()
 
 art2al_SUMdf[is.na(art2al_SUMdf$ToleranceIndex), 
-                 c("EH_ID", "Mouse_genotype", "relWL", "max.OPG")]
+                 c("EH_ID", "Mouse_genotype", "infection_isolate", "relWL", "max.OPG")]
 # 9 mice died before peak
 #
 # pdf(file = "../figures/choiceIndexes.pdf", width = 10, height = 5)
@@ -315,7 +323,7 @@ testSignif(SUBsummaryDF77mice, "RES", "STRAINS")
 testSignif(art2al_SUMdf, "IMP", "SPECIES")
 testSignif(SUBsummaryDF77mice, "IMP", "SPECIES")
 testSignif(art2al_SUMdf, "IMP", "STRAINS")
-testSignif(SUBsummaryDF77mice, "IMP", "STRAINS")
+testSignif(SUBsummaryDF77mice, "IMP", "STRAINS") ####### !!!
 # Tolerance
 testSignif(art2al_SUMdf, "TOL", "SPECIES")
 testSignif(SUBsummaryDF77mice, "TOL", "SPECIES")
@@ -327,7 +335,7 @@ testSignif(SUBsummaryDF77mice, "TOL", "STRAINS")
 ####################
 
 # to avoid running these long test all the time
-doYouRun = "foncebebe"
+doYouRun = "keepit"
 
 if (doYouRun == "foncebebe"){
   # Resistance
@@ -498,6 +506,7 @@ get_plotI_STRAINS <- function(dataframe){
 plotI_STRAINS  <- get_plotI_STRAINS(art2al_SUMdf)
 plotI_STRAINS
 plotI_STRAINS_77mice <- get_plotI_STRAINS(SUBsummaryDF77mice)
+plotI_STRAINS_77mice
 
 ###############
 ## Tolerance ##
@@ -517,6 +526,7 @@ get_plotT_SPECIES <- function(dataframe){
 plotT_SPECIES <- get_plotT_SPECIES(art2al_SUMdf)
 plotT_SPECIES
 plotT_SPECIES_77mice <- get_plotT_SPECIES(SUBsummaryDF77mice)
+plotT_SPECIES_77mice
 
 get_plotT_STRAINS <- function(dataframe){
   plot_model(testSignif(dataframe, "TOL", "STRAINS")$modfull,
@@ -532,6 +542,7 @@ get_plotT_STRAINS <- function(dataframe){
 plotT_STRAINS <- get_plotT_STRAINS(art2al_SUMdf)
 plotT_STRAINS
 plotT_STRAINS_77mice <- get_plotT_STRAINS(SUBsummaryDF77mice)
+plotT_STRAINS_77mice
 
 # Fig 3.
 Fig3 <- cowplot::plot_grid(plotR_SPECIES + theme(legend.position = "none"),
@@ -619,96 +630,42 @@ pdf("../figures/Fig5_couplingplot.pdf", width = 6, height = 5)
 Fig5_couplingplot  
 dev.off()
 
-# https://stats.idre.ucla.edu/r/seminars/interactions-r/
-# Test the difference between slopes (simplified):
-art2al_SUMdf$group <- paste0(art2al_SUMdf$Eimeria_species, "_", art2al_SUMdf$Mouse_subspecies)
+#### Same for supplementary:
 
-modO_W <- lm(formula = relWL ~ max.OPG * Eimeria_species, data = art2al_SUMdf)
-modO_W
-summary(modO_W)
-#p-value of the t-statistic for the interaction between ResistanceIndex and Eimeria_species: 1.39e-05 ***
+# take the predictions from before 
+mydatx <- ggeffects::ggpredict(
+  model = testSignif(SUBsummaryDF77mice, "RES", "SPECIES")$modfull, 
+  terms = c("Eimeria_species", "Mouse_subspecies"), ci.lvl = 0.95)
+names(mydatx)[2:5] <- paste0(names(mydatx)[2:5], "_OPG")
 
-# The interaction term is significant, which suggests
-# that the relationship of relWL by maxOPG does vary by Eimeria spieces
-modO_WA <- lm(formula = relWL ~ max.OPG * Eimeria_species, data = art2al_SUMdf)
-modO_WB <- lm(formula = relWL ~ max.OPG + Eimeria_species, data = art2al_SUMdf)
-modO_WC <- lm(formula = relWL ~ max.OPG, data = art2al_SUMdf)
-modO_WD <- lm(formula = relWL ~ Eimeria_species, data = art2al_SUMdf)
+mydaty <- ggeffects::ggpredict(
+  model = testSignif(SUBsummaryDF77mice, "IMP", "SPECIES")$modfull, 
+  terms = c("Eimeria_species", "Mouse_subspecies"), ci.lvl = 0.95)
+names(mydaty)[2:5] <- paste0(names(mydaty)[2:5], "_WL")
 
+## NB. translate back 0.01 the y axis because we did 
+# SUBsummaryDF77mice$impact <- SUBsummaryDF77mice$relWL + 0.01
+mydaty$predicted_WL <- mydaty$predicted_WL - 0.01
+mydaty$conf.low_WL <- mydaty$conf.low_WL - 0.01
+mydaty$conf.high_WL <- mydaty$conf.high_WL - 0.01
 
-olB <- lm(formula = ToleranceIndex ~ ResistanceIndex + Eimeria_species, data = summaryDF108mice)
-modResTolC <- lm(formula = ToleranceIndex ~ ResistanceIndex, data = summaryDF108mice)
-modResTolD <- lm(formula = ToleranceIndex ~ Eimeria_species, data = summaryDF108mice)
+mydat <- merge(data.frame(mydatx), data.frame(mydaty))
 
-# signif interaction:
-homemadeGtest(modResTolA, modResTolB)
-# signif eimeria:
-homemadeGtest(modResTolA, modResTolC)
-# signif resistance index:
-homemadeGtest(modResTolA, modResTolD)
-
-# Since our goal is to obtain simple slopes of parasite:
-library(lsmeans)
-emtrends(modResTolA, ~ Eimeria_species, var="ResistanceIndex")
-
-# The 95% confidence interval does not contain zero for E. falciformis but contains zero
-# for E. ferrisi, so the simple slope is significant for E. falciformis but not for E. ferrisi
-
-########### Remove the outlier:
-
-summaryDF_rmoutlier <- summaryDF108mice[!summaryDF108mice$ResistanceIndex < 0.25 & !is.na(summaryDF108mice$ResistanceIndex),]
-
-modResTolA2 <- lm(formula = ToleranceIndex ~ ResistanceIndex * Eimeria_species, data = summaryDF_rmoutlier)
-modResTolB2 <- lm(formula = ToleranceIndex ~ ResistanceIndex + Eimeria_species, data = summaryDF_rmoutlier)
-modResTolC2 <- lm(formula = ToleranceIndex ~ ResistanceIndex, data = summaryDF_rmoutlier)
-modResTolD2 <- lm(formula = ToleranceIndex ~ Eimeria_species, data = summaryDF_rmoutlier)
-
-# signif interaction:
-homemadeGtest(modResTolA2, modResTolB2)
-# signif eimeria:
-homemadeGtest(modResTolA2, modResTolC2)
-# signif resistance index:
-homemadeGtest(modResTolA2, modResTolD2)
-
-# Since our goal is to obtain simple slopes of parasite:
-emtrends(modResTolA2, ~ Eimeria_species, var="ResistanceIndex")
-
-
-# for supp data
-SUBsummaryDF77mice$group <- paste(SUBsummaryDF77mice$Mouse_subspecies, SUBsummaryDF77mice$Eimeria_species, sep = "_")
-gd2 <- SUBsummaryDF77mice %>%
-  group_by(group, Mouse_subspecies, Eimeria_species) %>% 
-  summarise(
-    Wmean = mean(relWL, na.rm = T),
-    Wsd = sd(relWL, na.rm = T),
-    Wn = sum(!is.na(relWL)),
-    Omean = mean(max.OPG*10e-6, na.rm = T),
-    Osd = sd(max.OPG*10e-6, na.rm = T),
-    On = sum(!is.na(max.OPG))) %>%
-  mutate(Wse = Wsd / sqrt(Wn),
-         Wlower.ci = Wmean - qt(1 - (0.05 / 2), Wn - 1) * Wse,
-         Wupper.ci = Wmean + qt(1 - (0.05 / 2), Wn - 1) * Wse,
-         Ose = Osd / sqrt(On),
-         Olower.ci = Omean - qt(1 - (0.05 / 2), On - 1) * Ose,
-         Oupper.ci = Omean + qt(1 - (0.05 / 2), On - 1) * Ose)
-
-Fig5_couplingplot <- ggplot(gd2, aes(x = Omean, y = Wmean, col = Mouse_subspecies)) +
-  geom_errorbar(aes(ymin = Wlower.ci, ymax = Wupper.ci))+
-  geom_errorbarh(aes(xmin = Olower.ci, xmax = Oupper.ci))+
-  geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = Eimeria_species)) + 
+# Trade-off plot
+FigCouplingplot_77mice <- ggplot(mydat, aes(x = predicted_OPG, y = predicted_WL, col = group)) +
+  geom_errorbar(aes(ymin = conf.low_WL, ymax = conf.high_WL))+
+  geom_errorbarh(aes(xmin = conf.low_OPG, xmax = conf.high_OPG))+
+  geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = x)) + 
   theme_bw()+
   scale_color_manual(values = c("blue", "red")) +
-  ylab(label = "Minimum relative weight compared to day 0") +
-  scale_x_continuous(name = "maximum oocysts per gram of feces (x10^6)")+
-  scale_y_continuous(breaks = seq(0,0.20, 0.05), labels = c("0%", "5%", "10%", "15%", "20%"), 
-                     name = "(predicted) maximum weight loss compared to day of infection") +
+  scale_x_log10(name = "(predicted) maximum oocysts per gram of feces")+
+  scale_y_continuous(name = "(predicted) maximum weight loss \ncompared to day of infection",
+                     breaks = seq(0,0.3, 0.05), 
+                     labels = c("0%", "5%", "10%", "15%", "20%", "25%", "30%")) +
   ggtitle("Maximum weight loss = f(maximum parasite load) \n(mean and 95%CI)")
 
-Fig5_couplingplot
-
-pdf("../figures/suppleResTolPlot77mice.pdf", width = 12, height = 9)
-restolplot77  
+pdf("../figures/FigCouplingplot_77mice.pdf", width = 6, height = 5)
+FigCouplingplot_77mice  
 dev.off()
-
 
 
