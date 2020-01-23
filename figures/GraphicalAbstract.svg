@@ -27,7 +27,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -238,9 +238,9 @@
      inkscape:window-height="991"
      id="namedview29"
      showgrid="false"
-     inkscape:zoom="0.625"
-     inkscape:cx="93.022618"
-     inkscape:cy="380.42238"
+     inkscape:zoom="1.25"
+     inkscape:cx="324.88207"
+     inkscape:cy="165.12525"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
@@ -248,7 +248,8 @@
      fit-margin-top="0.5"
      fit-margin-left="-10"
      fit-margin-bottom="0.5"
-     fit-margin-right="10" />
+     fit-margin-right="10"
+     showguides="false" />
   <clipPath
      id="p.0">
     <path
@@ -316,21 +317,16 @@
      style="fill:none;stroke:#ffb380;stroke-width:3.28446174;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:30.70000076;stroke-dasharray:none;stroke-dashoffset:0;paint-order:markers stroke fill" />
   <text
      id="text4037"
-     y="416.28113"
-     x="160.49217"
+     y="424.30713"
+     x="30.912777"
      style="font-style:normal;font-weight:normal;font-size:20.853508px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.52133769"
      xml:space="preserve"
      transform="scale(1.0032469,0.99676361)"><tspan
-       y="416.28113"
-       x="160.49217"
-       id="tspan4035"
-       sodipodi:role="line"
-       style="stroke-width:0.52133769">Infection intensity = </tspan><tspan
        id="tspan4039"
-       y="442.34802"
-       x="160.49217"
+       y="424.30713"
+       x="30.912777"
        sodipodi:role="line"
-       style="stroke-width:0.52133769">- resistance</tspan></text>
+       style="stroke-width:0.52133769">Infection intensity = - resistance</tspan></text>
   <text
      transform="matrix(0,-0.99676361,1.0032469,0,0,0)"
      id="text4037-2"
@@ -362,19 +358,19 @@
        style="stroke-width:0.52133769">high resistance</tspan></text>
   <text
      id="text4066-5"
-     y="303.34787"
-     x="350.24918"
+     y="341.47137"
+     x="342.27505"
      style="font-style:normal;font-weight:normal;font-size:20.853508px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.52133769"
      xml:space="preserve"
      transform="scale(1.0032469,0.99676361)"><tspan
-       y="303.34787"
-       x="350.24918"
+       y="341.47137"
+       x="342.27505"
        id="tspan4064-9"
        sodipodi:role="line"
        style="stroke-width:0.52133769">high tolerance / </tspan><tspan
        id="tspan4104"
-       y="329.41479"
-       x="350.24918"
+       y="367.53827"
+       x="342.27505"
        sodipodi:role="line"
        style="stroke-width:0.52133769">low resistance</tspan></text>
   <text

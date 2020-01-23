@@ -3,23 +3,16 @@
 ## Protocol from Ivet Yordanova
 
 # weight the feces for later having concentration
-
 # resuspend in PBS (1mL/g feces)
-
 # spin max speed 3-5 min
 # test different speed and timing
 # homogenize +++
-
 # clear liquid
-
 # clear supernatant, either freeze or process right away
-
 # Make standard curve by pooling material:
 # all samples day 0 (control) / all samples peak day E.fal / all samples peak day E.fer
 # then you find the correct dilutiuon
-
 # possibly if no detection, sequential ELISA
-
 # Ivet has done IgG-IgA in routine, with home made products, she send me the protocol + INFgamma
 
 ############################
@@ -28,6 +21,19 @@
 source("Article2_analysis.R")
 
 ## Samples available for ELISA: feces collected and frozen
+x <- ALL_summary[c("dpi_max.OPG", "EH_ID", "infection_isolate")]
+
+## label
+y <- DF_all[c("labels", "EH_ID", "dpi")]
+names(y)[names(y) %in% "dpi"] <- "dpi_max.OPG"
+
+x <- merge(x, y)
+
+write.csv(x, "../data/fecesForELISA.csv", row.names = F)
+
+
+
+#######
 
 #################################
 ## Set : 26 mice, plön pre inf ##

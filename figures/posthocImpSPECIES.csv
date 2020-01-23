@@ -1,4 +1,5 @@
 "","E.ferrisi.M.m.dom","E.falciformis.M.m.dom","E.ferrisi.M.m.mus","E.falciformis.M.m.mus"
+<<<<<<< Updated upstream
 "E.ferrisi.M.m.dom","","est:0.38,
 Std.Error:0.2","est:0.27,
 Std.Error:0.14","est:1.03,
@@ -15,3 +16,9 @@ Std.Error:0.2"
 Pr(>|z|):< 0.001","z value:2.62,
 Pr(>|z|):0.04","z value:3.76,
 Pr(>|z|):< 0.01",""
+=======
+"E.ferrisi.M.m.dom","","est:0.38, Std.Error:0.2","est:0.27, Std.Error:0.14","est:1.03, Std.Error:0.2"
+"E.falciformis.M.m.dom","z value:1.84, Pr(>|z|):0.25","","est:-0.1, Std.Error:0.21","est:0.65, Std.Error:0.25"
+"E.ferrisi.M.m.mus","z value:1.89, Pr(>|z|):0.23","z value:-0.5, Pr(>|z|):0.96","","est:0.76, Std.Error:0.2"
+"E.falciformis.M.m.mus","z value:5.12, Pr(>|z|):< 0.001","z value:2.62, Pr(>|z|):0.04","z value:3.76, Pr(>|z|):< 0.001",""
+>>>>>>> Stashed changes
