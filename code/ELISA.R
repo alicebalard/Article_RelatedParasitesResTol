@@ -24,7 +24,7 @@ source("Article2_analysis.R")
 x <- ALL_summary[c("dpi_max.OPG", "EH_ID", "infection_isolate")]
 
 ## label
-y <- DF_all[c("labels", "EH_ID", "dpi")]
+y <- DF_all[c("labels", "EH_ID", "dpi", "Exp_ID")]
 names(y)[names(y) %in% "dpi"] <- "dpi_max.OPG"
 
 x <- merge(x, y)
