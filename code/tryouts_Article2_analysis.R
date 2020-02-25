@@ -145,77 +145,23 @@ cor(art2al_SUMdf$sumoocysts.per.tube , art2al_SUMdf$max.oocysts.per.tube,
 xRes <- round(as.numeric(na.omit(art2al_SUMdf$max.OPG)))
 hist(xRes, breaks = 100)
 descdist(xRes)
-#pdf("../figures/supfig1.1.pdf")
 findGoodDist(x = xRes, distribs = c("normal", "negative binomial"), 
              distribs2 = c("norm", "nbinom"))
-#dev.off()
 ### nbinom for resistance
 
 ## IMPACT ON HEALTH
 xImp <- as.numeric(na.omit(art2al_SUMdf$relWL))
 hist(xImp, breaks = 100)
 descdist(xImp)
-#pdf("../figures/supfig1.2.pdf")
 findGoodDist(x = xImp+ 0.01, distribs = c("normal", "weibull"), 
              distribs2 = c("norm", "weibull"))
-#dev.off()
 ### weibull for impact on health
 art2al_SUMdf$impact <- art2al_SUMdf$relWL + 0.01
 SUBsummaryDF77mice$impact <- SUBsummaryDF77mice$relWL + 0.01
 
-## TOLERANCE
-hist(na.omit(art2al_SUMdf$relWL / art2al_SUMdf$max.OPG), breaks = 100)
-range(art2al_SUMdf$relWL / art2al_SUMdf$max.OPG, na.rm = T)
-range(art2al_SUMdf$relWL / art2al_SUMdf$max.OPG + 1e-8, na.rm = T)
-range(log10(art2al_SUMdf$relWL / art2al_SUMdf$max.OPG + 1e-8), na.rm = T)
-range(log10(art2al_SUMdf$relWL / art2al_SUMdf$max.OPG + 1e-8)/-1, na.rm = T)
-range(log10(art2al_SUMdf$relWL / art2al_SUMdf$max.OPG + 1e-8)/-8, na.rm = T)
-    hist(na.omit(log10(art2al_SUMdf$relWL / art2al_SUMdf$max.OPG + 1e-8)/-8), breaks = 100)
+###############################################################
+########## After first review: plot & analyse slopes ##########
 
-art2al_SUMdf$ToleranceIndex <- log10(
-  art2al_SUMdf$relWL / art2al_SUMdf$max.OPG + 1e-8) / (-8)
-SUBsummaryDF77mice$ToleranceIndex <- log10(
-  SUBsummaryDF77mice$relWL / SUBsummaryDF77mice$max.OPG + 1e-8) / (-8)
-
-plotChoiceTolIndex <- ggplot(art2al_SUMdf, 
-                             aes(x=max.OPG, y =relWL, fill = ToleranceIndex))+
-  geom_point(size = 4, pch =21) +
-  scale_fill_gradient(low = "green", high = "red") +
-  xlab("Parasite density (oocysts per mouse gram) at peak day") +
-  ylab("maximumrelative weight loss compared to day 0 (%)") +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
-  labs(fill = "Tolerance Index") +
-  theme(
-    legend.position = c(.95, .95),
-    legend.justification = c("right", "top"),
-    legend.box.just = "right",
-    legend.margin = margin(6, 6, 6, 6)
-  )
-
-plotChoiceTolIndex
-
-xTol <- as.numeric(na.omit(art2al_SUMdf$ToleranceIndex))
-
-# for tolerance, we need to find a way to deal with the massive extreme values
-hist(xTol, breaks = 1000)
-descdist(xTol)
-
-  #pdf("../figures/supfig1.3.pdf")
-findGoodDist(x = xTol, distribs = c("normal"), 
-             distribs2 = c("norm"))
-#dev.off()
-
-art2al_SUMdf[is.na(art2al_SUMdf$ToleranceIndex), 
-                 c("EH_ID", "Mouse_genotype", "infection_isolate", "relWL", "max.OPG")]
-# 9 mice died before peak
-#
-# pdf(file = "../figures/choiceIndexes.pdf", width = 10, height = 5)
-# cowplot::plot_grid(plotChoiceResIndex,
-#                    plotChoiceTolIndex,
-#                    labels=c("A", "B"), label_size = 15)
-# dev.off()
-
-################################
 ##### Statistical analyses #####
 ################################
 ## LRT test
@@ -273,6 +219,13 @@ testSignif <- function(dataframe, which, level){
     }
   } else if (which == "TOL"){
     if(level == "SPECIES"){
+      modFULL <- survreg(Surv(impact)~art2al_SUMdf$max.OPG
+                         
+                         Eimeria_species*Mouse_subspecies, data = dataframe, dist="weibull")
+      modPara <- survreg(Surv(impact)~Mouse_subspecies, data = dataframe, dist="weibull")
+      modMous <- survreg(Surv(impact)~Eimeria_species, data = dataframe, dist="weibull")
+      modinter <- survreg(Surv(impact)~Eimeria_species+Mouse_subspecies, data = dataframe, dist="weibull")
+      
       modFULL <- lm(ToleranceIndex ~ Eimeria_species*Mouse_subspecies, data = dataframe)
       modPara <- lm(ToleranceIndex ~ Mouse_subspecies, data = dataframe)
       modMous <- lm(ToleranceIndex ~ Eimeria_species, data = dataframe)
@@ -668,4 +621,58 @@ pdf("../figures/FigCouplingplot_77mice.pdf", width = 6, height = 5)
 FigCouplingplot_77mice  
 dev.off()
 
+
+######### Extra
+modRab <- lm(relWL ~ max.OPG + max.OPG^2 + Mouse_genotype + infection_isolate +
+               max.OPG : Mouse_genotype : infection_isolate, data = art2al_SUMdf)
+
+
+
+
+plot_model(modRab, se = FALSE,
+           type = "int", dot.size = 4, dodge = .5) #+ # mean-value and +/- 1 standard deviation
+scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
+                   name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
+  scale_y_continuous("(predicted) maximum oocysts per gram of feces (x10e6)", 
+                     breaks = seq(0, 3500000, 500000),
+                     labels = seq(0, 3500000, 500000)/1000000)+
+  ggtitle("Maximum parasite load \n(mean and 95%CI)") +
+  xlab("Eimeria isolate") +
+  theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
+  geom_text(aes(x=posx.2,y=120000,label=getNs("max.OPG", dataframe)),vjust=0)
+
+# start all at 0
+longDF <- art2al_SUMdf
+longDF$weightloss <- longDF$minweight - longDF$startingWeight
+longDF$startingWeight_scaled <- 0
+
+longDF <- melt(longDF, measure.vars=c("startingWeight_scaled", "weightloss"))
+names(longDF)[names(longDF)%in% c("variable", "value")] <- c("measure", "weight")
+longDF$measure <- plyr::revalue(longDF$measure, c("startingWeight_scaled"="start", "weightloss"="peak"))
+
+longDF2 <- melt(art2al_SUMdf, measure.vars=c("start.OPG", "max.OPG"))
+names(longDF2)[names(longDF2)%in% c("variable", "value")] <- c("measure", "OPG")
+longDF2$measure <- plyr::revalue(longDF2$measure, c("start.OPG"="start", "max.OPG"="peak"))
+
+longDF <- merge(longDF, longDF2)
+rm(longDF2)
+
+ggplot(longDF, aes(OPG, weight, col = Mouse_genotype)) +
+  geom_point(size = 3) +
+  geom_smooth(aes(group = Mouse_genotype), alpha = 0.3, method = "lm", se = F) +
+  scale_x_log10() +
+  facet_grid(.~infection_isolate)
+
+
+# art2al_SUMdf$dpi_m???
+
+
+
+
+ggplot(art2al_RAWdf, aes(dpi, weight, group = EH_ID, 
+                         col = infection_isolate)) +
+  geom_line()
+
+
+# 9 mice died before peak
 

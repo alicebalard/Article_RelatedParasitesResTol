@@ -137,27 +137,6 @@ cor(art2al_SUMdf$sumoocysts.per.tube , art2al_SUMdf$max.oocysts.per.tube,
     method = "pearson")
 
 ###############################################################
-########## After first review: plot & analyse slopes ##########
-###############################################################
-# art2al_SUMdf$startingWeight
-# art2al_SUMdf$minweight
-
-longDF <- melt(art2al_SUMdf, measure.vars=c("startingWeight", "minweight"))
-names(longDF)[names(longDF)%in% "value"] <- "weight"
-longDF <- melt(longDF, measure.vars=c("dpi_start.OPG", "minweight"))
-names(longDF)[names(longDF)%in% "value"] <- "weight"
-
-# art2al_SUMdf$dpi_m???
-
-ggplot(art2al_SUMdf, aes(weight))
-
-
-ggplot(art2al_RAWdf, aes(dpi, weight, group = EH_ID, 
-                     col = infection_isolate)) +
-  geom_line()
-
-
-###############################################################
 ########## Define our indexes and their distribution ##########
 ###############################################################
 
@@ -346,10 +325,10 @@ testSignif(SUBsummaryDF77mice, "IMP", "SPECIES")
 testSignif(art2al_SUMdf, "IMP", "STRAINS")
 testSignif(SUBsummaryDF77mice, "IMP", "STRAINS") ####### !!!
 # Tolerance
-testSignif(art2al_SUMdf, "TOL", "SPECIES")
-testSignif(SUBsummaryDF77mice, "TOL", "SPECIES")
-testSignif(art2al_SUMdf, "TOL", "STRAINS")
-testSignif(SUBsummaryDF77mice, "TOL", "STRAINS")
+# testSignif(art2al_SUMdf, "TOL", "SPECIES")
+# testSignif(SUBsummaryDF77mice, "TOL", "SPECIES")
+# testSignif(art2al_SUMdf, "TOL", "STRAINS")
+# testSignif(SUBsummaryDF77mice, "TOL", "STRAINS")
 
 ####################
 ## Post-hoc tests ##
@@ -379,13 +358,13 @@ coefImp[1] * coefImp[2] - 0.01 # Efal-MmD: 9.3%
 coefImp[1] * coefImp[3] - 0.01# Efer-Mmm: 8.3%
 coefImp[1] * coefImp[2] * coefImp[3] * coefImp[4] -0.01 # Efal-Mmm: 18.7%
 
-if (doYouRun == "foncebebe"){
-  # Tolerance
-  testPostHoc(art2al_SUMdf, "TOL", "SPECIES")
-  testPostHoc(SUBsummaryDF77mice, "TOL", "SPECIES")
-  testPostHoc(art2al_SUMdf, "TOL", "STRAINS")
-  testPostHoc(SUBsummaryDF77mice, "TOL", "STRAINS")
-}
+# if (doYouRun == "foncebebe"){
+#   # Tolerance
+#   testPostHoc(art2al_SUMdf, "TOL", "SPECIES")
+#   testPostHoc(SUBsummaryDF77mice, "TOL", "SPECIES")
+#   testPostHoc(art2al_SUMdf, "TOL", "STRAINS")
+#   testPostHoc(SUBsummaryDF77mice, "TOL", "STRAINS")
+# }
 
 #################
 ## save output ##
@@ -410,15 +389,15 @@ if (doYouSave == "foncebebe"){
             "../figures/posthocImpSTRAINS.csv")
   write.csv(getMatrixPostHoc(testPostHoc(SUBsummaryDF77mice, "IMP", "STRAINS")),
             "../figures/posthocImpSTRAINS_77mice.csv")
-  # Tolerance
-  write.csv(getMatrixPostHoc(testPostHoc(art2al_SUMdf, "TOL", "SPECIES")),
-            "../figures/posthocTolSPECIES.csv")
-  write.csv(getMatrixPostHoc(testPostHoc(SUBsummaryDF77mice, "TOL", "SPECIES")),
-            "../figures/posthocTolSPECIES_77mice.csv")
-  write.csv(getMatrixPostHoc(testPostHoc(art2al_SUMdf, "TOL", "STRAINS")),
-            "../figures/posthocTolSTRAINS.csv")
-  write.csv(getMatrixPostHoc(testPostHoc(SUBsummaryDF77mice, "TOL", "STRAINS")),
-            "../figures/posthocTolSTRAINS_77mice.csv")
+  # # Tolerance
+  # write.csv(getMatrixPostHoc(testPostHoc(art2al_SUMdf, "TOL", "SPECIES")),
+  #           "../figures/posthocTolSPECIES.csv")
+  # write.csv(getMatrixPostHoc(testPostHoc(SUBsummaryDF77mice, "TOL", "SPECIES")),
+  #           "../figures/posthocTolSPECIES_77mice.csv")
+  # write.csv(getMatrixPostHoc(testPostHoc(art2al_SUMdf, "TOL", "STRAINS")),
+  #           "../figures/posthocTolSTRAINS.csv")
+  # write.csv(getMatrixPostHoc(testPostHoc(SUBsummaryDF77mice, "TOL", "STRAINS")),
+  #           "../figures/posthocTolSTRAINS_77mice.csv")
 }
 
 ##########
@@ -529,48 +508,48 @@ plotI_STRAINS
 plotI_STRAINS_77mice <- get_plotI_STRAINS(SUBsummaryDF77mice)
 plotI_STRAINS_77mice
 
-###############
-## Tolerance ##
-
-get_plotT_SPECIES <- function(dataframe){
-  plot_model(testSignif(dataframe, "TOL", "SPECIES")$modfull, 
-             type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
-    scale_color_manual(values = c("blue", "red"),
-                       name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
-    xlab("Eimeria species") +
-    ggtitle("Tolerance index \n(mean and 95%CI)") +
-    scale_y_continuous("(predicted) tolerance index")+
-    theme(axis.title.x = element_text(hjust=1), axis.text = element_text(size=13))+
-    geom_text(aes(x=posx.1,y=0.7,label=getNs("ToleranceIndex", dataframe,
-                                             "Mouse_subspecies", "Eimeria_species")),vjust=0)
-}
-plotT_SPECIES <- get_plotT_SPECIES(art2al_SUMdf)
-plotT_SPECIES
-plotT_SPECIES_77mice <- get_plotT_SPECIES(SUBsummaryDF77mice)
-plotT_SPECIES_77mice
-
-get_plotT_STRAINS <- function(dataframe){
-  plot_model(testSignif(dataframe, "TOL", "STRAINS")$modfull,
-             type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
-    scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
-                       name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
-    xlab("Eimeria isolate") +
-    ggtitle("Tolerance index \n(mean and 95%CI)") +
-    scale_y_continuous("(predicted) tolerance index")+
-    theme(axis.title.x = element_text(hjust=1), axis.text = element_text(size=13))+
-    geom_text(aes(x=posx.2,y=0.7,label=getNs("ToleranceIndex", dataframe)),vjust=0)
-}
-plotT_STRAINS <- get_plotT_STRAINS(art2al_SUMdf)
-plotT_STRAINS
-plotT_STRAINS_77mice <- get_plotT_STRAINS(SUBsummaryDF77mice)
-plotT_STRAINS_77mice
+# ###############
+# ## Tolerance ##
+# 
+# get_plotT_SPECIES <- function(dataframe){
+#   plot_model(testSignif(dataframe, "TOL", "SPECIES")$modfull, 
+#              type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
+#     scale_color_manual(values = c("blue", "red"),
+#                        name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
+#     xlab("Eimeria species") +
+#     ggtitle("Tolerance index \n(mean and 95%CI)") +
+#     scale_y_continuous("(predicted) tolerance index")+
+#     theme(axis.title.x = element_text(hjust=1), axis.text = element_text(size=13))+
+#     geom_text(aes(x=posx.1,y=0.7,label=getNs("ToleranceIndex", dataframe,
+#                                              "Mouse_subspecies", "Eimeria_species")),vjust=0)
+# }
+# plotT_SPECIES <- get_plotT_SPECIES(art2al_SUMdf)
+# plotT_SPECIES
+# plotT_SPECIES_77mice <- get_plotT_SPECIES(SUBsummaryDF77mice)
+# plotT_SPECIES_77mice
+# 
+# get_plotT_STRAINS <- function(dataframe){
+#   plot_model(testSignif(dataframe, "TOL", "STRAINS")$modfull,
+#              type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
+#     scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
+#                        name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
+#     xlab("Eimeria isolate") +
+#     ggtitle("Tolerance index \n(mean and 95%CI)") +
+#     scale_y_continuous("(predicted) tolerance index")+
+#     theme(axis.title.x = element_text(hjust=1), axis.text = element_text(size=13))+
+#     geom_text(aes(x=posx.2,y=0.7,label=getNs("ToleranceIndex", dataframe)),vjust=0)
+# }
+# plotT_STRAINS <- get_plotT_STRAINS(art2al_SUMdf)
+# plotT_STRAINS
+# plotT_STRAINS_77mice <- get_plotT_STRAINS(SUBsummaryDF77mice)
+# plotT_STRAINS_77mice
 
 # Fig 3.
 Fig3 <- cowplot::plot_grid(plotR_SPECIES + theme(legend.position = "none"),
                            plotI_SPECIES + theme(legend.position = "none"),
-                           plotT_SPECIES + theme(legend.position = "none"), 
-                           plotT_SPECIES,
-                           labels=c("A", "B", "C", "D"), label_size = 20)
+                           # plotT_SPECIES + theme(legend.position = "none"), 
+                           plotR_SPECIES,
+                           labels=c("A", "B", "C"), label_size = 20)
   
 Fig3
 pdf(file = "../figures/Fig3.pdf",
@@ -582,9 +561,8 @@ dev.off()
 Fig4 <-  cowplot::plot_grid(
   plotR_STRAINS + theme(legend.position = "none"),
   plotI_STRAINS + theme(legend.position = "none"),
-  plotT_STRAINS+ theme(legend.position = "none"), 
-  plotT_STRAINS,
-  labels=c("A", "B", "C", "D"), label_size = 20)
+  plotR_STRAINS,
+  labels=c("A", "B", "C"), label_size = 20)
 Fig4
 
 pdf(file = "../figures/Fig4.pdf",
@@ -598,9 +576,8 @@ pdf(file = "../figures/FigSPECIES_77mice.pdf",
 cowplot::plot_grid(
   plotR_SPECIES_77mice + theme(legend.position = "none"),
   plotI_SPECIES_77mice + theme(legend.position = "none"),
-  plotT_SPECIES_77mice+ theme(legend.position = "none"), 
-  plotT_SPECIES_77mice,
-  labels=c("A", "B", "C", "D"), label_size = 20)
+  plotR_SPECIES_77mice,
+  labels=c("A", "B", "C"), label_size = 20)
 dev.off()
 
 pdf(file = "../figures/FigSTRAINS_77mice.pdf",
@@ -608,18 +585,56 @@ pdf(file = "../figures/FigSTRAINS_77mice.pdf",
 cowplot::plot_grid(
   plotR_STRAINS_77mice + theme(legend.position = "none"),
   plotI_STRAINS_77mice + theme(legend.position = "none"),
-  plotT_STRAINS_77mice+ theme(legend.position = "none"), 
-  plotT_STRAINS_77mice,
-  labels=c("A", "B", "C", "D"), label_size = 20)
+  plotR_STRAINS_77mice,
+  labels=c("A", "B", "C"), label_size = 20)
 dev.off()
 
 ### Second part: correlation resistance / tolerance
 
 # take the predictions from before 
 mydatx <- ggeffects::ggpredict(
+  model = testSignif(art2al_SUMdf, "RES", "STRAINS")$modfull, 
+  terms = c("infection_isolate", "Mouse_genotype"), ci.lvl = 0.95)
+names(mydatx)[2:5] <- paste0(names(mydatx)[2:5], "_OPG")
+
+mydaty <- ggeffects::ggpredict(
+  model = testSignif(art2al_SUMdf, "IMP", "STRAINS")$modfull, 
+  terms = c("infection_isolate", "Mouse_genotype"), ci.lvl = 0.95)
+names(mydaty)[2:5] <- paste0(names(mydaty)[2:5], "_WL")
+
+## NB. translate back 0.01 the y axis because we did 
+# art2al_SUMdf$impact <- art2al_SUMdf$relWL + 0.01
+mydaty$predicted_WL <- mydaty$predicted_WL - 0.01
+mydaty$conf.low_WL <- mydaty$conf.low_WL - 0.01
+mydaty$conf.high_WL <- mydaty$conf.high_WL - 0.01
+
+mydat <- merge(data.frame(mydatx), data.frame(mydaty))
+mydat$x <- as.factor(mydat$x)
+mydat$x <- plyr::mapvalues(mydat$x, from = c("1", "2", "3"), to = levels(art2al_SUMdf$infection_isolate))
+
+# Trade-off plot
+Fig5 <- ggplot(mydat, aes(x = predicted_OPG, y = predicted_WL, col = group)) +
+  geom_point(aes(pch = x), size = 2) +
+  geom_errorbar(aes(ymin = conf.low_WL, ymax = conf.high_WL), size = .2)+
+  geom_errorbarh(aes(xmin = conf.low_OPG, xmax = conf.high_OPG), size = .2)+
+  geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = x), se = F) + 
+  theme_bw()+
+  scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
+                     name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
+  scale_x_log10(name = "(predicted) maximum oocysts per gram of feces")+
+  scale_y_continuous(name = "(predicted) maximum weight loss \ncompared to day of infection",
+                     breaks = seq(0,0.3, 0.05), 
+                     labels = c("0%", "5%", "10%", "15%", "20%", "25%", "30%")) +
+  ggtitle("Maximum weight loss = f(maximum parasite load) \n(mean and 95%CI)")
+pdf("../figures/Fig5.pdf", width = 8, height = 5)
+Fig5  
+dev.off()
+
+# take the predictions from before 
+mydatx <- ggeffects::ggpredict(
   model = testSignif(art2al_SUMdf, "RES", "SPECIES")$modfull, 
   terms = c("Eimeria_species", "Mouse_subspecies"), ci.lvl = 0.95)
-names(mydatx)[2:5] <- paste0(names(mydatx)[2:5], "_OPG")
+  names(mydatx)[2:5] <- paste0(names(mydatx)[2:5], "_OPG")
 
 mydaty <- ggeffects::ggpredict(
   model = testSignif(art2al_SUMdf, "IMP", "SPECIES")$modfull, 
@@ -633,9 +648,10 @@ mydaty$conf.low_WL <- mydaty$conf.low_WL - 0.01
 mydaty$conf.high_WL <- mydaty$conf.high_WL - 0.01
 
 mydat <- merge(data.frame(mydatx), data.frame(mydaty))
+mydat$x <- as.factor(mydat$x)
 
 # Trade-off plot
-Fig5_couplingplot <- ggplot(mydat, aes(x = predicted_OPG, y = predicted_WL, col = group)) +
+Fig6 <- ggplot(mydat, aes(x = predicted_OPG, y = predicted_WL, col = group)) +
   geom_errorbar(aes(ymin = conf.low_WL, ymax = conf.high_WL))+
   geom_errorbarh(aes(xmin = conf.low_OPG, xmax = conf.high_OPG))+
   geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = x)) + 
@@ -646,12 +662,13 @@ Fig5_couplingplot <- ggplot(mydat, aes(x = predicted_OPG, y = predicted_WL, col 
                      breaks = seq(0,0.3, 0.05), 
                      labels = c("0%", "5%", "10%", "15%", "20%", "25%", "30%")) +
   ggtitle("Maximum weight loss = f(maximum parasite load) \n(mean and 95%CI)")
+Fig6
 
-pdf("../figures/Fig5_couplingplot.pdf", width = 6, height = 5)
-Fig5_couplingplot  
+pdf("../figures/Fig6.pdf", width = 6, height = 5)
+Fig6  
 dev.off()
 
-#### Same for supplementary:
+#### Same for supplementary: TO FINISH
 
 # take the predictions from before 
 mydatx <- ggeffects::ggpredict(
