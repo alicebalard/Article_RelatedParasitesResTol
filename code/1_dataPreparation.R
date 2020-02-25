@@ -93,7 +93,7 @@ DF_all <- calculateOPG(DF_all)
 DF_all <- calculateWeightLoss(DF_all)
 
 # Summarize all
-ALL_summary <- makeSummaryTable(DF_all[DF_all$dpi %in% 4:11,])
+ALL_summary <- makeSummaryTable(DF_all)
 
 ############################## 
 #### PB1. dead before end #### 

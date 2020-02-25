@@ -31,12 +31,13 @@ calculateOPG <- function(ExpeDF){
   return(ExpeDF)
 }
 
-
 # create a table with tolerance factor, max.loss, max.OPG and sum.oocysts concatenated
 makeSummaryTable <- function(df){
+  # start at dpi 4 to avoid the second day post-traumatic infection protocol 
+  dfwindow <- df[df$dpi %in% 4:11,]
   # minimum weight in g / in ratio and associated original weight
   X <- as.data.frame(
-    df %>% dplyr::group_by(EH_ID) %>%
+    dfwindow %>% dplyr::group_by(EH_ID) %>%
       dplyr::slice(which.min(weight)) %>%
       dplyr::select(EH_ID, weight, relWL, HI, startingWeight, ageAtInfection, Sex,
                     Mouse_genotype, Eimeria_species, Mouse_subspecies,
@@ -59,8 +60,12 @@ makeSummaryTable <- function(df){
   Z <- as.data.frame(
     df %>% dplyr::group_by(EH_ID) %>%
       dplyr::summarise(sumoocysts.per.tube = sum(oocysts.per.tube, na.rm = T)))
-  # merge
-  fullDF <- merge(X, Y); fullDF <- merge(fullDF, Z)
+  # NEW FOR SLOPE: oocysts at dpi0
+  W <- df[df$dpi == 0, c("EH_ID", "OPG", "dpi")]
+  names(W)[names(W) %in% "dpi"] = "dpi_start.OPG"
+  names(W)[names(W) %in% "OPG"] = "start.OPG"
+    # merge
+  fullDF <- merge(X, Y); fullDF <- merge(fullDF, Z); fullDF <- merge(fullDF, W)
   return(fullDF)
 }
 

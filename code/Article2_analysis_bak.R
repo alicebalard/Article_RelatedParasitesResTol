@@ -137,27 +137,6 @@ cor(art2al_SUMdf$sumoocysts.per.tube , art2al_SUMdf$max.oocysts.per.tube,
     method = "pearson")
 
 ###############################################################
-########## After first review: plot & analyse slopes ##########
-###############################################################
-# art2al_SUMdf$startingWeight
-# art2al_SUMdf$minweight
-
-longDF <- melt(art2al_SUMdf, measure.vars=c("startingWeight", "minweight"))
-names(longDF)[names(longDF)%in% "value"] <- "weight"
-longDF <- melt(longDF, measure.vars=c("dpi_start.OPG", "minweight"))
-names(longDF)[names(longDF)%in% "value"] <- "weight"
-
-# art2al_SUMdf$dpi_m???
-
-ggplot(art2al_SUMdf, aes(weight))
-
-
-ggplot(art2al_RAWdf, aes(dpi, weight, group = EH_ID, 
-                     col = infection_isolate)) +
-  geom_line()
-
-
-###############################################################
 ########## Define our indexes and their distribution ##########
 ###############################################################
 
