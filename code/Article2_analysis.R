@@ -527,38 +527,42 @@ mydaty$conf.low_WL <- mydaty$conf.low_WL - 0.01
 mydaty$conf.high_WL <- mydaty$conf.high_WL - 0.01
 
 mydat <- merge(data.frame(mydatx), data.frame(mydaty))
-# mydat$x <- as.factor(mydat$x)
-# mydat$x <- plyr::mapvalues(mydat$x, from = c("1", "2", "3"), to = levels(art2al_SUMdf$infection_isolate))
-names(mydat)[names(mydat) =="x"] <- "group_col"
+mydat$x <- as.factor(mydat$x)
+mydat$x <- plyr::mapvalues(mydat$x, from = c("1", "2", "3"), to = levels(art2al_SUMdf$infection_isolate))
 names(mydat)[names(mydat) =="group"] <- "Mouse_genotype"
+names(mydat)[names(mydat) =="x"] <- "group"
 
 ## Plot 
 # art2al_SUMdf$group_col <- art2al_SUMdf$infection_isolate
 
-plot_model(modfull, type = "int") +
-  geom_point(data = mydat, aes(x = predicted_OPG, y = predicted_WL, pch = Mouse_genotype), size = 5) +
-  scale_x_continuous(name = "(predicted) maximum oocysts per gram of feces") +
-  scale_y_continuous(name = "(predicted) maximum weight loss \ncompared to day of infection",
-                     breaks = seq(0,0.3, 0.05), 
-                     labels = c("0%", "5%", "10%", "15%", "20%", "25%", "30%")) 
-
 # Trade-off plot
-Fig5 <- ggplot(mydat, aes(x = predicted_OPG, y = predicted_WL, col = group)) +
-  geom_point(aes(pch = x), size = 2) +
-  geom_errorbar(aes(ymin = conf.low_WL, ymax = conf.high_WL), size = .2)+
-  geom_errorbarh(aes(xmin = conf.low_OPG, xmax = conf.high_OPG), size = .2)+
-  geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = x), se = F) + 
-  theme_bw()+
-  scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
-                     name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
-  scale_x_log10(name = "(predicted) maximum oocysts per gram of feces")+
-  scale_y_continuous(name = "(predicted) maximum weight loss \ncompared to day of infection",
-                     breaks = seq(0,0.3, 0.05), 
+Fig5 <- plot_model(modfull, type = "int") +
+  geom_point(data = mydat, aes(x = predicted_OPG, y = predicted_WL, pch = Mouse_genotype), size = 5) +
+  scale_x_continuous(name = "maximum oocysts per gram of feces", limits = c(0, 3e+06)) +
+  scale_y_continuous(name = "maximum weight loss compared to day of infection",
+                     breaks = seq(0,0.3, 0.05), limits = c(0,0.2), 
                      labels = c("0%", "5%", "10%", "15%", "20%", "25%", "30%")) +
+  scale_color_manual(values = c("darkgreen", "green", "orange")) +
+  scale_fill_manual(values = c("darkgreen", "green", "orange")) +
   ggtitle("Maximum weight loss = f(maximum parasite load) \n(mean and 95%CI)")
 # pdf("../figures/Fig5.pdf", width = 8, height = 5)
-Fig5  
+Fig5
 # dev.off()
+
+forMap$color[1:3]
+ # ggplot(mydat, aes(x = predicted_OPG, y = predicted_WL, col = group)) +
+ #  geom_point(aes(pch = x), size = 2) +
+ #  geom_errorbar(aes(ymin = conf.low_WL, ymax = conf.high_WL), size = .2)+
+ #  geom_errorbarh(aes(xmin = conf.low_OPG, xmax = conf.high_OPG), size = .2)+
+ #  geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = x), se = F) + 
+ #  theme_bw()+
+ #  scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
+ #                     name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
+ #  scale_x_log10(name = "(predicted) maximum oocysts per gram of feces")+
+ #  scale_y_continuous(name = "(predicted) maximum weight loss \ncompared to day of infection",
+ #                     breaks = seq(0,0.3, 0.05), 
+ #                     labels = c("0%", "5%", "10%", "15%", "20%", "25%", "30%")) 
+
 
 # take the predictions from before 
 mydatx <- ggeffects::ggpredict(
