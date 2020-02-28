@@ -425,17 +425,17 @@ plotI_STRAINS
 plotI_STRAINS_77mice <- get_plotI_STRAINS(SUBsummaryDF77mice)
 plotI_STRAINS_77mice
 
-# Fig 3.
-Fig3 <- cowplot::plot_grid(plotR_SPECIES + theme(legend.position = "none"),
-                           plotI_SPECIES + theme(legend.position = "none"),
-                           plotR_SPECIES,
-                           labels=c("A", "B", "C"), label_size = 20)
-  
-Fig3
-pdf(file = "../figures/Fig3.pdf",
-    width = 9, height = 9)
-Fig3
-dev.off()
+# # Fig 3.
+# Fig3 <- cowplot::plot_grid(plotR_SPECIES + theme(legend.position = "none"),
+#                            plotI_SPECIES + theme(legend.position = "none"),
+#                            plotR_SPECIES,
+#                            labels=c("A", "B", "C"), label_size = 20)
+#   
+# Fig3
+# pdf(file = "../figures/Fig3.pdf",
+#     width = 9, height = 9)
+# Fig3
+# dev.off()
 
 ## Fig 4
 Fig4 <-  cowplot::plot_grid(
@@ -473,171 +473,103 @@ dev.off()
 ### Second part: assessing tolerance ###
 ########################################
 
-# full model
-modfull <- lm(relWL ~ max.OPG * infection_isolate, data = art2al_SUMdf)
-modNOint <- lm(relWL ~ max.OPG + infection_isolate, data = art2al_SUMdf)
-modNOisolate <- lm(relWL ~ max.OPG, data = art2al_SUMdf)
+art2al_SUMdf$group <- factor(paste(art2al_SUMdf$Mouse_genotype, art2al_SUMdf$infection_isolate, sep = "_"))
 
-# significance of parasite isolate
+modfull <- lm(relWL ~ max.OPG * infection_isolate * Mouse_genotype, data = art2al_SUMdf)
+modNOmouse <- lm(relWL ~ max.OPG * infection_isolate, data = art2al_SUMdf)
+modNOisolate <- lm(relWL ~ max.OPG * Mouse_genotype, data = art2al_SUMdf)
+modNOint <- lm(relWL ~ max.OPG + infection_isolate + Mouse_genotype, data = art2al_SUMdf)
+
 homemadeGtest(modfull, modNOisolate)
-# "G=25.7 ,df=4 ,p=3.6e-05"
-
-# significance of interaction -> different slopes per parasite isolate?
+homemadeGtest(modfull, modNOmouse)
 homemadeGtest(modfull, modNOint)
-# "G=12.6 ,df=2 ,p=0.001864"
 
-# test differences between infection groups:
-summary(glht(modfull, linfct=mcp(infection_isolate = "Tukey")))
-# Simultaneous Tests for General Linear Hypotheses
-# 
-# Multiple Comparisons of Means: Tukey Contrasts
-# 
-# 
-# Fit: lm(formula = relWL ~ max.OPG * infection_isolate, data = art2al_SUMdf)
-# 
-# Linear Hypotheses:
-#                                                                   Estimate   Std. Error t value Pr(>|t|)    
-# Brandenburg64 (E. ferrisi) - Brandenburg139 (E. ferrisi) == 0     -0.01475    0.02650  -0.557  0.84083    
-# Brandenburg88 (E. falciformis) - Brandenburg139 (E. ferrisi) == 0  0.10752    0.03159   3.403  0.00274 ** 
-#   Brandenburg88 (E. falciformis) - Brandenburg64 (E. ferrisi) == 0   0.12227    0.02385   5.128  < 1e-04 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# (Adjusted p values reported -- single-step method)
+# Calculate slopes for each group:
+df.allgroups <- data.frame(infection_isolate = rep(levels(art2al_SUMdf$infection_isolate),4),
+                           Mouse_genotype = c(rep(levels(art2al_SUMdf$Mouse_genotype)[1], 3),
+                                              rep(levels(art2al_SUMdf$Mouse_genotype)[2], 3),
+                                              rep(levels(art2al_SUMdf$Mouse_genotype)[3], 3),
+                                              rep(levels(art2al_SUMdf$Mouse_genotype)[4], 3)),
+                           group = NA, slope = NA)
+df.allgroups$group <- paste(df.allgroups$Mouse_genotype, df.allgroups$infection_isolate, sep = "_")
 
-##### -> no significative diffences in slopes between both ferrisi isolates, 
-##### but difference between Efal-Efer
+for (i in 1:length(df.allgroups$group)){
+  mod.subgroup <- lm(relWL ~ 0 + max.OPG, 
+                     data = art2al_SUMdf[art2al_SUMdf$group %in% df.allgroups$group[i],])
+  df.allgroups$slope[i] <- coef(mod.subgroup)
+  df.allgroups$down[i] <- confint(mod.subgroup)[1]
+  df.allgroups$up[i] <- confint(mod.subgroup)[2]
+  
+  }
 
-### PLOT
+df.allgroups$origin.y <- 0
+df.allgroups <- melt(df.allgroups, measure.vars = c("slope", "origin.y"))
+df.allgroups$down[df.allgroups$variable %in% "origin.y"] <- 0
+df.allgroups$up[df.allgroups$variable %in% "origin.y"] <- 0
+df.allgroups$max.OPG <- as.numeric(as.character(
+  plyr::mapvalues(df.allgroups$variable, 
+                  from = c("slope", "origin.y"), to = c(1, 0))))
+df.allgroups$max.OPG <- df.allgroups$max.OPG*4e6
+df.allgroups$relWL <- df.allgroups$value * 4e6
+
+T1 <- ggplot(data = df.allgroups, aes(x = max.OPG, y = relWL, group = group, 
+                                      col = Mouse_genotype)) +
+  geom_smooth(method = "lm", se = F) +
+  geom_point(data = art2al_SUMdf, size = 4, pch = 3)+
+  facet_grid(.~infection_isolate) +
+  scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
+                     name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +  scale_x_continuous(name = "maximum oocysts per gram of feces") +
+  scale_y_continuous(name = "maximum weight loss compared to day of infection",
+                     breaks = seq(0,0.3, 0.05), 
+                     labels = c("0%", "5%", "10%", "15%", "20%", "25%", "30%"))+
+  coord_cartesian(ylim=c(0, 0.3)) +
+  theme(legend.position = "top")
+T1
+  
+## Means & 95% CI of each slope
+T2 <- ggplot(data = df.allgroups[df.allgroups$variable %in% "slope",],
+       aes(x = infection_isolate, y = value, col = Mouse_genotype)) +
+  geom_point(size = 4, position = position_dodge(width = .5))+
+  geom_errorbar(aes(ymin = down, ymax = up), width = .1,
+                position = position_dodge(width = .5))+
+  # facet_grid(.~infection_isolate) +
+  scale_y_continuous(name = "slope of relative weight loss on OPG (inverse of tolerance)")+
+  coord_cartesian(ylim=c(-0.3e-7,4.5e-7)) +
+  scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
+                     name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
+  theme(legend.position = "top")
+  
+FigTOL <- cowplot::plot_grid(T1, T2,
+                             labels=c("A", "B"), label_size = 20)
+
+FigTOL
+
+########## Coupling res tol
+d <- df.allgroups[df.allgroups$variable %in% "slope",
+                  c("infection_isolate", "Mouse_genotype", "down", "up", "value")]
+d
 
 # take the predictions from before 
 mydatx <- ggeffects::ggpredict(
   model = testSignif(art2al_SUMdf, "RES", "STRAINS")$modfull, 
   terms = c("infection_isolate", "Mouse_genotype"), ci.lvl = 0.95)
 names(mydatx)[2:5] <- paste0(names(mydatx)[2:5], "_OPG")
+mydatx <- data.frame(mydatx)
+names(mydatx)[names(mydatx)%in% "x"] <- "infection_isolate"
+names(mydatx)[names(mydatx)%in% "group"] <- "Mouse_genotype"
 
-mydaty <- ggeffects::ggpredict(
-  model = testSignif(art2al_SUMdf, "IMP", "STRAINS")$modfull, 
-  terms = c("infection_isolate", "Mouse_genotype"), ci.lvl = 0.95)
-names(mydaty)[2:5] <- paste0(names(mydaty)[2:5], "_WL")
+d <- merge(d, mydatx)
 
-## NB. translate back 0.01 the y axis because we did 
-# art2al_SUMdf$impact <- art2al_SUMdf$relWL + 0.01
-mydaty$predicted_WL <- mydaty$predicted_WL - 0.01
-mydaty$conf.low_WL <- mydaty$conf.low_WL - 0.01
-mydaty$conf.high_WL <- mydaty$conf.high_WL - 0.01
+figCoupl <- ggplot(d, aes(x = predicted_OPG, y = value,col = Mouse_genotype)) +
+  geom_point(size = 4)+
+  geom_errorbar(aes(ymin = down, ymax = up), width = .1) +
+  geom_errorbarh(aes(xmin = conf.low_OPG, xmax = conf.high_OPG), width = .1,
+                position = position_dodge(width = .5)) +
+  coord_cartesian(ylim=c(-0.3e-7,4.5e-7))+
+  scale_y_continuous(name = "slope of relative weight loss on OPG (inverse of tolerance)")+
+  scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
+                     name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
+  facet_grid(.~infection_isolate)
+figCoupl
 
-mydat <- merge(data.frame(mydatx), data.frame(mydaty))
-mydat$x <- as.factor(mydat$x)
-mydat$x <- plyr::mapvalues(mydat$x, from = c("1", "2", "3"), to = levels(art2al_SUMdf$infection_isolate))
-names(mydat)[names(mydat) =="group"] <- "Mouse_genotype"
-names(mydat)[names(mydat) =="x"] <- "group"
-
-## Plot 
-# art2al_SUMdf$group_col <- art2al_SUMdf$infection_isolate
-
-# Trade-off plot
-Fig5 <- plot_model(modfull, type = "int") +
-  geom_point(data = mydat, aes(x = predicted_OPG, y = predicted_WL, pch = Mouse_genotype), size = 5) +
-  scale_x_continuous(name = "maximum oocysts per gram of feces", limits = c(0, 3e+06)) +
-  scale_y_continuous(name = "maximum weight loss compared to day of infection",
-                     breaks = seq(0,0.3, 0.05), limits = c(0,0.2), 
-                     labels = c("0%", "5%", "10%", "15%", "20%", "25%", "30%")) +
-  scale_color_manual(values = c("darkgreen", "green", "orange")) +
-  scale_fill_manual(values = c("darkgreen", "green", "orange")) +
-  ggtitle("Maximum weight loss = f(maximum parasite load) \n(mean and 95%CI)")
-# pdf("../figures/Fig5.pdf", width = 8, height = 5)
-Fig5
-# dev.off()
-
-forMap$color[1:3]
- # ggplot(mydat, aes(x = predicted_OPG, y = predicted_WL, col = group)) +
- #  geom_point(aes(pch = x), size = 2) +
- #  geom_errorbar(aes(ymin = conf.low_WL, ymax = conf.high_WL), size = .2)+
- #  geom_errorbarh(aes(xmin = conf.low_OPG, xmax = conf.high_OPG), size = .2)+
- #  geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = x), se = F) + 
- #  theme_bw()+
- #  scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
- #                     name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
- #  scale_x_log10(name = "(predicted) maximum oocysts per gram of feces")+
- #  scale_y_continuous(name = "(predicted) maximum weight loss \ncompared to day of infection",
- #                     breaks = seq(0,0.3, 0.05), 
- #                     labels = c("0%", "5%", "10%", "15%", "20%", "25%", "30%")) 
-
-
-# take the predictions from before 
-mydatx <- ggeffects::ggpredict(
-  model = testSignif(art2al_SUMdf, "RES", "SPECIES")$modfull, 
-  terms = c("Eimeria_species", "Mouse_subspecies"), ci.lvl = 0.95)
-  names(mydatx)[2:5] <- paste0(names(mydatx)[2:5], "_OPG")
-
-mydaty <- ggeffects::ggpredict(
-  model = testSignif(art2al_SUMdf, "IMP", "SPECIES")$modfull, 
-  terms = c("Eimeria_species", "Mouse_subspecies"), ci.lvl = 0.95)
-names(mydaty)[2:5] <- paste0(names(mydaty)[2:5], "_WL")
-
-## NB. translate back 0.01 the y axis because we did 
-# art2al_SUMdf$impact <- art2al_SUMdf$relWL + 0.01
-mydaty$predicted_WL <- mydaty$predicted_WL - 0.01
-mydaty$conf.low_WL <- mydaty$conf.low_WL - 0.01
-mydaty$conf.high_WL <- mydaty$conf.high_WL - 0.01
-
-mydat <- merge(data.frame(mydatx), data.frame(mydaty))
-mydat$x <- as.factor(mydat$x)
-
-# Trade-off plot
-Fig6 <- ggplot(mydat, aes(x = predicted_OPG, y = predicted_WL, col = group)) +
-  geom_errorbar(aes(ymin = conf.low_WL, ymax = conf.high_WL))+
-  geom_errorbarh(aes(xmin = conf.low_OPG, xmax = conf.high_OPG))+
-  geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = x)) + 
-  theme_bw()+
-  scale_color_manual(values = c("blue", "red")) +
-  scale_x_log10(name = "(predicted) maximum oocysts per gram of feces")+
-  scale_y_continuous(name = "(predicted) maximum weight loss \ncompared to day of infection",
-                     breaks = seq(0,0.3, 0.05), 
-                     labels = c("0%", "5%", "10%", "15%", "20%", "25%", "30%")) +
-  ggtitle("Maximum weight loss = f(maximum parasite load) \n(mean and 95%CI)")
-Fig6
-
-pdf("../figures/Fig6.pdf", width = 6, height = 5)
-Fig6  
-dev.off()
-
-#### Same for supplementary: TO FINISH
-
-# take the predictions from before 
-mydatx <- ggeffects::ggpredict(
-  model = testSignif(SUBsummaryDF77mice, "RES", "SPECIES")$modfull, 
-  terms = c("Eimeria_species", "Mouse_subspecies"), ci.lvl = 0.95)
-names(mydatx)[2:5] <- paste0(names(mydatx)[2:5], "_OPG")
-
-mydaty <- ggeffects::ggpredict(
-  model = testSignif(SUBsummaryDF77mice, "IMP", "SPECIES")$modfull, 
-  terms = c("Eimeria_species", "Mouse_subspecies"), ci.lvl = 0.95)
-names(mydaty)[2:5] <- paste0(names(mydaty)[2:5], "_WL")
-
-## NB. translate back 0.01 the y axis because we did 
-# SUBsummaryDF77mice$impact <- SUBsummaryDF77mice$relWL + 0.01
-mydaty$predicted_WL <- mydaty$predicted_WL - 0.01
-mydaty$conf.low_WL <- mydaty$conf.low_WL - 0.01
-mydaty$conf.high_WL <- mydaty$conf.high_WL - 0.01
-
-mydat <- merge(data.frame(mydatx), data.frame(mydaty))
-
-# Trade-off plot
-FigCouplingplot_77mice <- ggplot(mydat, aes(x = predicted_OPG, y = predicted_WL, col = group)) +
-  geom_errorbar(aes(ymin = conf.low_WL, ymax = conf.high_WL))+
-  geom_errorbarh(aes(xmin = conf.low_OPG, xmax = conf.high_OPG))+
-  geom_smooth(method = "lm", col = "black", alpha = .2, aes(linetype = x)) + 
-  theme_bw()+
-  scale_color_manual(values = c("blue", "red")) +
-  scale_x_log10(name = "(predicted) maximum oocysts per gram of feces")+
-  scale_y_continuous(name = "(predicted) maximum weight loss \ncompared to day of infection",
-                     breaks = seq(0,0.3, 0.05), 
-                     labels = c("0%", "5%", "10%", "15%", "20%", "25%", "30%")) +
-  ggtitle("Maximum weight loss = f(maximum parasite load) \n(mean and 95%CI)")
-
-pdf("../figures/FigCouplingplot_77mice.pdf", width = 6, height = 5)
-FigCouplingplot_77mice  
-dev.off()
-
-
+## NB supplementary.
