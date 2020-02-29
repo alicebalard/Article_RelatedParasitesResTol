@@ -126,7 +126,7 @@ F2.2
 Fig2 <- cowplot::plot_grid(F2.1, F2.2,
                   labels=c("A", "B"), label_size = 20)
 # pdf(file = "../figures/Fig2.pdf", width = 10, height = 5)
-# Fig2
+Fig2
 # dev.off()
 
 ## Correlation sum of oocysts / peak oocysts
@@ -164,12 +164,6 @@ art2al_SUMdf$impact <- art2al_SUMdf$relWL + 0.01
 SUBsummaryDF77mice$impact <- SUBsummaryDF77mice$relWL + 0.01
 
 # 9 mice died before peak
-#
-# pdf(file = "../figures/choiceIndexes.pdf", width = 10, height = 5)
-# cowplot::plot_grid(plotChoiceResIndex,
-#                    plotChoiceTolIndex,
-#                    labels=c("A", "B"), label_size = 15)
-# dev.off()
 
 ################################
 ##### Statistical analyses #####
@@ -193,61 +187,33 @@ myLRTsignificanceFactors <- function(modFull, modPar, modMouse, modInt){
 }
 
 # for posthoc tests
-art2al_SUMdf$intFacSPECIES <- interaction(art2al_SUMdf$Eimeria_species, 
-                                              art2al_SUMdf$Mouse_subspecies, drop=T)
 art2al_SUMdf$intFacSTRAINS <- interaction(art2al_SUMdf$infection_isolate, 
                                               art2al_SUMdf$Mouse_genotype, drop=T)
-SUBsummaryDF77mice$intFacSPECIES <- interaction(SUBsummaryDF77mice$Eimeria_species, 
-                                                SUBsummaryDF77mice$Mouse_subspecies, drop=T)
 SUBsummaryDF77mice$intFacSTRAINS <- interaction(SUBsummaryDF77mice$infection_isolate, 
                                                 SUBsummaryDF77mice$Mouse_genotype, drop=T)
 
-testSignif <- function(dataframe, which, level){
+testSignif <- function(dataframe, which){
   if(which == "RES"){
-    if(level == "SPECIES"){
-      modFULL <- glm.nb(max.OPG ~ Eimeria_species*Mouse_subspecies, data = dataframe)
-      modPara <- glm.nb(max.OPG ~ Mouse_subspecies, data = dataframe)
-      modMous <- glm.nb(max.OPG ~ Eimeria_species, data = dataframe)
-      modinter <- glm.nb(max.OPG ~ Eimeria_species+Mouse_subspecies, data = dataframe)
-    } else if (level == "STRAINS"){
-      modFULL <- glm.nb(max.OPG ~ infection_isolate*Mouse_genotype, data = dataframe)
-      modPara <- glm.nb(max.OPG ~ Mouse_genotype, data = dataframe)
-      modMous <- glm.nb(max.OPG ~ infection_isolate, data = dataframe)
-      modinter <- glm.nb(max.OPG ~ infection_isolate+Mouse_genotype, data = dataframe)
-    }
+    modFULL <- glm.nb(max.OPG ~ infection_isolate*Mouse_genotype, data = dataframe)
+    modPara <- glm.nb(max.OPG ~ Mouse_genotype, data = dataframe)
+    modMous <- glm.nb(max.OPG ~ infection_isolate, data = dataframe)
+    modinter <- glm.nb(max.OPG ~ infection_isolate+Mouse_genotype, data = dataframe)
   } else if (which == "IMP"){
-    if(level == "SPECIES"){
-      modFULL <- survreg(Surv(impact)~Eimeria_species*Mouse_subspecies, data = dataframe, dist="weibull")
-      modPara <- survreg(Surv(impact)~Mouse_subspecies, data = dataframe, dist="weibull")
-      modMous <- survreg(Surv(impact)~Eimeria_species, data = dataframe, dist="weibull")
-      modinter <- survreg(Surv(impact)~Eimeria_species+Mouse_subspecies, data = dataframe, dist="weibull")
-    } else if (level == "STRAINS"){
-      modFULL <- survreg(Surv(impact)~infection_isolate*Mouse_genotype, data = dataframe, dist="weibull")
-      modPara <- survreg(Surv(impact)~Mouse_genotype, data = dataframe, dist="weibull")
-      modMous <- survreg(Surv(impact)~infection_isolate, data = dataframe, dist="weibull")
-      modinter <- survreg(Surv(impact)~infection_isolate+Mouse_genotype, data = dataframe, dist="weibull")
-    }
+    modFULL <- survreg(Surv(impact)~infection_isolate*Mouse_genotype, data = dataframe, dist="weibull")
+    modPara <- survreg(Surv(impact)~Mouse_genotype, data = dataframe, dist="weibull")
+    modMous <- survreg(Surv(impact)~infection_isolate, data = dataframe, dist="weibull")
+    modinter <- survreg(Surv(impact)~infection_isolate+Mouse_genotype, data = dataframe, dist="weibull")
   }
   return(list(modfull = modFULL, LRT = myLRTsignificanceFactors(modFULL, modPara, modMous, modinter)))
 }
 
-testPostHoc <- function(dataframe, which, level){
-  if(level == "SPECIES"){
-    if(which == "RES"){
-      mod_multicomp <- glm.nb(max.OPG ~ intFacSPECIES, data = dataframe)
-    } else if(which == "IMP"){
-      mod_multicomp <- survreg(Surv(impact)~intFacSPECIES, data = dataframe, dist="weibull")
-    } 
-    return(summary(glht(mod_multicomp, linfct=mcp(intFacSPECIES = "Tukey"))))
-  }
-  if(level == "STRAINS"){
-    if(which == "RES"){
-      mod_multicomp <- glm.nb(max.OPG ~ intFacSTRAINS, data = dataframe)
-    } else if(which == "IMP"){
-      mod_multicomp <- survreg(Surv(impact)~intFacSTRAINS, data = dataframe, dist="weibull")
-    } 
-    return(summary(glht(mod_multicomp, linfct=mcp(intFacSTRAINS = "Tukey"))))
-  }
+testPostHoc <- function(dataframe, which){
+  if(which == "RES"){
+    mod_multicomp <- glm.nb(max.OPG ~ intFacSTRAINS, data = dataframe)
+  } else if(which == "IMP"){
+    mod_multicomp <- survreg(Surv(impact)~intFacSTRAINS, data = dataframe, dist="weibull")
+  } 
+  return(summary(glht(mod_multicomp, linfct=mcp(intFacSTRAINS = "Tukey"))))
 }
 
 ###############################
@@ -255,22 +221,90 @@ testPostHoc <- function(dataframe, which, level){
 ###############################
 
 # Resistance
-testSignif(art2al_SUMdf, "RES", "SPECIES")
-testSignif(SUBsummaryDF77mice, "RES", "SPECIES")
-testSignif(art2al_SUMdf, "RES", "STRAINS")
-testSignif(SUBsummaryDF77mice, "RES", "STRAINS")
+coef(testSignif(art2al_SUMdf, "RES"))
+# [1] "significance of parasite:"
+# [1] "G=35.5 ,df=8 ,p=2.2e-05"
+# [1] "significance of mouse:"
+# [1] "G=36.3 ,df=9 ,p=3.5e-05"
+# [1] "significance of interaction:"
+# [1] "G=21.8 ,df=6 ,p=0.00131"
+coef(testSignif(SUBsummaryDF77mice, "RES"))
+# [1] "significance of parasite:"
+# [1] "G=28.5 ,df=8 ,p=0.000393"
+# [1] "significance of mouse:"
+# [1] "G=31.8 ,df=9 ,p=0.000216"
+# [1] "significance of interaction:"
+# [1] "G=19.9 ,df=6 ,p=0.002856"
+
+ggpredict(testSignif(art2al_SUMdf, "RES")$modfull, terms = c("Mouse_genotype", "infection_isolate"))
+# Predicted values of max.OPG
+# x = Mouse_genotype
+
+  # # infection_isolate = Brandenburg139 (E. ferrisi)
+  # x predicted std.error conf.low conf.high
+  # MMd_F0 (Sc-Sc)  508998.8     0.269 300677.9  861652.3
+  # MMd_F0 (St-St)  649984.3     0.269 383961.5 1100317.6
+  # MMm_F0 (Bu-Bu)  503079.7     0.269 297181.3  851632.1
+  # MMm_F0 (Pw-Pw)  896458.8     0.269 529560.2 1517558.3
+  # 
+  # # infection_isolate = Brandenburg64 (E. ferrisi)
+  # x predicted std.error  conf.low conf.high
+  # MMd_F0 (Sc-Sc)  456384.5     0.176  323345.7  644161.5
+  # MMd_F0 (St-St)  878777.5     0.170  629926.8 1225935.9
+  # MMm_F0 (Bu-Bu) 1102932.1     0.176  781421.1 1556726.8
+  # MMm_F0 (Pw-Pw) 1689484.9     0.182 1181520.0 2415836.6
+  # 
+  # # infection_isolate = Brandenburg88 (E. falciformis)
+  # x predicted std.error  conf.low conf.high
+  # MMd_F0 (Sc-Sc) 1136492.8     0.269  671354.2 1923896.4
+  # MMd_F0 (St-St) 2118816.9     0.249 1301479.0 3449448.5
+  # MMm_F0 (Bu-Bu) 1392974.0     0.465  559719.4 3466695.5
+  # MMm_F0 (Pw-Pw)  414254.5     0.329  217406.1  789337.5
+
 # Impact
-testSignif(art2al_SUMdf, "IMP", "SPECIES")
-testSignif(SUBsummaryDF77mice, "IMP", "SPECIES")
-testSignif(art2al_SUMdf, "IMP", "STRAINS")
-testSignif(SUBsummaryDF77mice, "IMP", "STRAINS") ####### !!!
+coef(testSignif(art2al_SUMdf, "IMP")) #  "G=10.3 ,df=6 ,p=0.114453"
+# [1] "significance of parasite:"
+# [1] "G=30.7 ,df=8 ,p=0.000159"
+# [1] "significance of mouse:"
+# [1] "G=23 ,df=9 ,p=0.006115"
+# [1] "significance of interaction:"
+# [1] "G=10.3 ,df=6 ,p=0.114453"
+coef(testSignif(SUBsummaryDF77mice, "IMP"))
+# [1] "significance of parasite:"
+# [1] "G=38 ,df=8 ,p=8e-06"
+# [1] "significance of mouse:"
+# [1] "G=31.6 ,df=9 ,p=0.000235"
+# [1] "significance of interaction:"
+# [1] "G=23.8 ,df=6 ,p=0.000579"
+
 ## Translation of 1% because Weibull doesn't support nul data
-coef(testSignif(art2al_SUMdf, "IMP", "SPECIES")$modfull)
-coefImp <- exp(coef(testSignif(art2al_SUMdf, "IMP", "SPECIES")$modfull))
-coefImp[1] - 0.01# Efer-MmD: 6.1%
-coefImp[1] * coefImp[2] - 0.01 # Efal-MmD: 9.3%
-coefImp[1] * coefImp[3] - 0.01# Efer-Mmm: 8.3%
-coefImp[1] * coefImp[2] * coefImp[3] * coefImp[4] -0.01 # Efal-Mmm: 18.7%
+coef(testSignif(art2al_SUMdf, "IMP")$modfull)
+coefImp <- exp(coef(testSignif(art2al_SUMdf, "IMP")$modfull))
+# marginal effect for each combination:
+ggpredict(testSignif(art2al_SUMdf, "IMP")$modfull, terms = c("Mouse_genotype", "infection_isolate"))
+
+## NB substract 0.01 to each value, as it was added to model!
+
+# infection_isolate = Brandenburg139 (E. ferrisi)
+# x predicted std.error conf.low conf.high
+# MMd_F0 (Sc-Sc)     0.092     0.220    0.059     0.141
+# MMd_F0 (St-St)     0.115     0.244    0.071     0.186
+# MMm_F0 (Bu-Bu)     0.073     0.238    0.046     0.117
+# MMm_F0 (Pw-Pw)     0.097     0.239    0.061     0.155
+# 
+# # infection_isolate = Brandenburg64 (E. ferrisi)
+# x predicted std.error conf.low conf.high
+# MMd_F0 (Sc-Sc)     0.064     0.157    0.047     0.087
+# MMd_F0 (St-St)     0.051     0.153    0.038     0.069
+# MMm_F0 (Bu-Bu)     0.086     0.156    0.063     0.117
+# MMm_F0 (Pw-Pw)     0.111     0.162    0.081     0.152
+# 
+# # infection_isolate = Brandenburg88 (E. falciformis)
+# x predicted std.error conf.low conf.high
+# MMd_F0 (Sc-Sc)     0.132     0.239    0.082     0.210
+# MMd_F0 (St-St)     0.080     0.221    0.052     0.123
+# MMm_F0 (Bu-Bu)     0.191     0.220    0.124     0.294
+# MMm_F0 (Pw-Pw)     0.206     0.220    0.134     0.318
 
 ####################
 ## Post-hoc tests ##
@@ -281,13 +315,9 @@ doYouRun = "keepit"
 
 if (doYouRun == "foncebebe"){
   # Resistance
-  testPostHoc(art2al_SUMdf, "RES", "SPECIES")
-  testPostHoc(SUBsummaryDF77mice, "RES", "SPECIES")
   testPostHoc(art2al_SUMdf, "RES", "STRAINS")
   testPostHoc(SUBsummaryDF77mice, "RES", "STRAINS")
   # Impact
-  testPostHoc(art2al_SUMdf, "IMP", "SPECIES")
-  testPostHoc(SUBsummaryDF77mice, "IMP", "SPECIES")
   testPostHoc(art2al_SUMdf, "IMP", "STRAINS")
   testPostHoc(SUBsummaryDF77mice, "IMP", "STRAINS")
 }
@@ -295,26 +325,18 @@ if (doYouRun == "foncebebe"){
 #################
 ## save output ##
 #################
-doYouSave = "foncebebe"
+doYouSave = "notthistime"
 if (doYouSave == "foncebebe"){
   # Resistance
-  write.csv(getMatrixPostHoc(testPostHoc(art2al_SUMdf, "RES", "SPECIES")),
-            "../figures/posthocResSPECIES.csv")
-  write.csv(getMatrixPostHoc(testPostHoc(SUBsummaryDF77mice, "RES", "SPECIES")),
-            "../figures/posthocResSPECIES_77mice.csv")
-  write.csv(getMatrixPostHoc(testPostHoc(art2al_SUMdf, "RES", "STRAINS")),
-            "../figures/posthocResSTRAINS.csv")
-  write.csv(getMatrixPostHoc(testPostHoc(SUBsummaryDF77mice, "RES", "STRAINS")),
-            "../figures/posthocResSTRAINS_77mice.csv")
+  write.csv(getMatrixPostHoc(testPostHoc(art2al_SUMdf, "RES")),
+            "../figures/Tab_posthocResSTRAINS.csv")
+  write.csv(getMatrixPostHoc(testPostHoc(SUBsummaryDF77mice, "RES")),
+            "../figures/Tab_posthocResSTRAINS_77mice.csv")
   # Impact
-  write.csv(getMatrixPostHoc(testPostHoc(art2al_SUMdf, "IMP", "SPECIES")),
-            "../figures/posthocImpSPECIES.csv")
-  write.csv(getMatrixPostHoc(testPostHoc(SUBsummaryDF77mice, "IMP", "SPECIES")),
-            "../figures/posthocImpSPECIES_77mice.csv")
-  write.csv(getMatrixPostHoc(testPostHoc(art2al_SUMdf, "IMP", "STRAINS")),
-            "../figures/posthocImpSTRAINS.csv")
-  write.csv(getMatrixPostHoc(testPostHoc(SUBsummaryDF77mice, "IMP", "STRAINS")),
-            "../figures/posthocImpSTRAINS_77mice.csv")
+  write.csv(getMatrixPostHoc(testPostHoc(art2al_SUMdf, "IMP")),
+            "../figures/Tab_posthocImpSTRAINS.csv")
+  write.csv(getMatrixPostHoc(testPostHoc(SUBsummaryDF77mice, "IMP")),
+            "../figures/Tab_posthocImpSTRAINS_77mice.csv")
 }
 
 ##########
@@ -332,27 +354,10 @@ getNs <- function(proxy, df, groupMus = "Mouse_genotype", groupPar = "infection_
 
 ############
 ## Resistance
-# plot marginal effects of interaction terms
-posx.1 <- c(0.9,1.1, 1.9,2.1)
-get_plotR_SPECIES <- function(dataframe){
-  plot_model(testSignif(dataframe, "RES", "SPECIES")$modfull,
-             type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
-    scale_color_manual(values = c("blue", "red"),
-                       name = "Mouse subspecies",labels = c("Mmd", "Mmm")) +
-    ggtitle("Maximum parasite load \n(mean and 95%CI)") +
-    scale_y_continuous("(predicted) maximum oocysts per gram of feces (x10e6)", 
-                       breaks = seq(0, 2500000, 500000),
-                       labels = seq(0, 2500000, 500000)/1000000)+
-    xlab("Eimeria species") +
-    theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
-    geom_text(aes(x=posx.1,y=90000,label=getNs("max.OPG", dataframe, 
-                                               "Mouse_subspecies", "Eimeria_species")), vjust=0)
-}
-
 # plot marginal effects of interaction terms by isolates & strains
 posx.2 <- c(0.8+c(0,1/8,2/8,3/8),1.8+c(0,1/8,2/8,3/8),2.8+c(0,1/8,2/8,3/8))
 get_plotR_STRAINS <- function(dataframe){
-  plot_model(testSignif(dataframe, "RES", "STRAINS")$modfull,
+  plot_model(testSignif(dataframe, "RES")$modfull,
              type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
     scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
                        name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
@@ -364,11 +369,6 @@ get_plotR_STRAINS <- function(dataframe){
     theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
     geom_text(aes(x=posx.2,y=120000,label=getNs("max.OPG", dataframe)),vjust=0)
 } 
-
-plotR_SPECIES <- get_plotR_SPECIES(art2al_SUMdf)
-plotR_SPECIES
-plotR_SPECIES_77mice <- get_plotR_SPECIES(SUBsummaryDF77mice)
-plotR_SPECIES_77mice
 
 plotR_STRAINS <- get_plotR_STRAINS(art2al_SUMdf)
 plotR_STRAINS
