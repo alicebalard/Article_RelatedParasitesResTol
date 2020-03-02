@@ -429,8 +429,10 @@ dev.off()
 ########################################
 ### Second part: assessing tolerance ###
 ########################################
-toleranceAnalysis <- function(dataset){
-  modfull <- lm(relWL ~ 0 + max.OPG : (infection_isolate * Mouse_genotype), data = dataset)
+# toleranceAnalysis <- function(dataset){
+dataset = art2al_SUMdf
+  
+modfull <- lm(relWL ~ 0 + max.OPG : (infection_isolate * Mouse_genotype), data = dataset)
   modNOmouse <- lm(relWL ~ 0 + max.OPG : (infection_isolate), data = dataset)
   modNOisolate <- lm(relWL ~ 0 + max.OPG : (Mouse_genotype), data = dataset)
   modNOint <- lm(relWL ~ 0 + max.OPG : (infection_isolate + Mouse_genotype), data = dataset)
@@ -442,8 +444,36 @@ toleranceAnalysis <- function(dataset){
   testInteraction <- homemadeGtest(modfull, modNOint)
   # [1] "G=24 ,df=6 ,p=0.000513"
   
-  # Calculate slopes for each group:
-  predTolSlopes <- ggpredict(modfull, terms = c("Mouse_genotype", "infection_isolate"), condition = c(max.OPG = 1000000))
+  # Calculate slopes, N, R-squared by group
+  getStuff <- function(what){
+    sapply(levels(dataset$Mouse_genotype), function(mg){
+      sapply(levels(dataset$infection_isolate), function(ii){
+        l <- lm(relWL ~ 0 + max.OPG, data = dataset[dataset$Mouse_genotype %in% mg & 
+                                                      dataset$infection_isolate %in% ii,])
+        if (what == "rsquared") {
+          round(summary(l)$r.sq, 2)
+        }else if (what == "N") {
+          nobs(l)
+        } else if (what == "slope") {
+          round(l$coefficients * 1e6, 2)
+        }
+      })
+    })
+  }
+  
+  getStuff("slope")
+  
+  l$coefficients * 1e6
+  
+  R <- melt(getStuff(what = "rsquared"))
+  names(R) <- c("infection_isolate", "Mouse_genotype", "rsquared")
+  N <- melt(getStuff(what = "N"))
+  names(N) <- c("infection_isolate", "Mouse_genotype", "N")
+  S <- melt(getStuff(what = "slope"))
+  names(S) <- c("infection_isolate", "Mouse_genotype", "slope")
+ 
+  merge(R, N, all=T)
+  
   
   ## And plot
   predTolSlopes <- data.frame(predTolSlopes)
@@ -498,54 +528,16 @@ toleranceAnalysis <- function(dataset){
 ### with full dataset
 tolAll <- toleranceAnalysis(dataset = art2al_SUMdf)
 
-tolAll$T1
+tolAll
 
-pdf(file = "../figures/Fig4.pdf",
-    width = 12, height = 6)
-tolAll$FigTOL
-dev.off()
+
 
 ### with conservative dataset
 tol77mice <- toleranceAnalysis(dataset = SUBsummaryDF77mice)
 tol77mice$T1
+
+
 pdf(file = "../figures/tol77mice.pdf",
     width = 12, height = 6)
 tol77mice$FigTOL
 dev.off()
-
-# ########## Average per group - plot
-# # take the predictions from before 
-# mydatx <- ggeffects::ggpredict(
-#   model = testSignif(art2al_SUMdf, "RES")$modfull, 
-#   terms = c("infection_isolate", "Mouse_genotype"), ci.lvl = 0.95)
-# names(mydatx)[2:5] <- paste0(names(mydatx)[2:5], "_OPG")
-# mydatx <- data.frame(mydatx)
-# names(mydatx)[names(mydatx)%in% "x"] <- "infection_isolate"
-# names(mydatx)[names(mydatx)%in% "group"] <- "Mouse_genotype"
-# 
-# mydaty <- ggeffects::ggpredict(
-#   model = testSignif(art2al_SUMdf, "IMP")$modfull, 
-#   terms = c("infection_isolate", "Mouse_genotype"), ci.lvl = 0.95)
-# names(mydaty)[2:5] <- paste0(names(mydaty)[2:5], "_relWL")
-# mydaty <- data.frame(mydaty)
-# names(mydaty)[names(mydaty)%in% "x"] <- "infection_isolate"
-# names(mydaty)[names(mydaty)%in% "group"] <- "Mouse_genotype"
-# # remove the 0.01 added for model
-# mydaty$predicted_relWL <- mydaty$predicted_relWL - 0.01
-# mydaty$conf.low_relWL <- mydaty$conf.low_relWL - 0.01
-# mydaty$conf.high_relWL <- mydaty$conf.high_relWL - 0.01
-# 
-# 
-# d <- merge(mydatx, mydaty)
-# 
-# figCoupl <- ggplot(d, aes(x = predicted_OPG, y = predicted_relWL,col = Mouse_genotype)) +
-#   geom_point(size = 4) +
-#   geom_errorbar(aes(ymin = conf.low_relWL, ymax = conf.high_relWL), width = .1) +
-#   geom_errorbarh(aes(xmin = conf.low_OPG, xmax = conf.high_OPG), width = .1,
-#                 position = position_dodge(width = .5)) +
-#   scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
-#                      name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
-#   facet_grid(.~infection_isolate)
-# figCoupl
-
-## NB supplementary.
