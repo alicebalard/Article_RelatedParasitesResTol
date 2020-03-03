@@ -436,16 +436,14 @@ toleranceAnalysis <- function(dataset){
   modNOint <- lm(relWL ~ 0 + max.OPG : (infection_isolate + Mouse_genotype), data = dataset)
   
   testIsolate <- homemadeGtest(modfull, modNOisolate)
-  # [1] "G=30.2 ,df=8 ,p=0.000197"
   testMouse <- homemadeGtest(modfull, modNOmouse)
-  # [1] "G=30.6 ,df=9 ,p=0.000341"
   testInteraction <- homemadeGtest(modfull, modNOint)
-  # [1] "G=24 ,df=6 ,p=0.000513"
-  
+
   # Calculate slopes for each group:
   predTolSlopes <- ggpredict(modfull, terms = c("Mouse_genotype", "infection_isolate"), condition = c(max.OPG = 1000000))  ## And plot
   predTolSlopes <- data.frame(predTolSlopes)
   names(predTolSlopes)[names(predTolSlopes) %in% c("x", "group")] <- c("Mouse_genotype", "infection_isolate")
+  predTolSlopes$group <- paste0(predTolSlopes$Mouse_genotype, predTolSlopes$infection_isolate)
   
   # make line up to 5e6 OPG for plot
   pts <- predTolSlopes
@@ -458,7 +456,7 @@ toleranceAnalysis <- function(dataset){
   pts$max.OPG[pts$max.OPG %in% "relWL_OPGnull"] <- "0"
   pts$max.OPG[pts$max.OPG %in% "relWL_5MOPG"] <- "5e6"
   pts$max.OPG <- as.numeric(pts$max.OPG)
-  pts$group <- factor(paste(pts$Mouse_genotype, pts$infection_isolate, sep = "_"))
+  pts$group <- factor(paste0(pts$Mouse_genotype, pts$infection_isolate))
   
   T1 <- ggplot(pts, aes(x = max.OPG, y = relWL, col = Mouse_genotype)) +
     geom_line(aes(group = group)) +
@@ -474,118 +472,66 @@ toleranceAnalysis <- function(dataset){
     geom_point(data = dataset, size = 4, pch = 1)+
     coord_cartesian(ylim=c(0, 0.30)) +
     theme(legend.position = "top")
-  
+  predTolSlopes$predicted = round(predTolSlopes$predicted,2)
   return(list(testIsolate = testIsolate, testMouse = testMouse, testInteraction = testInteraction,
               predTolSlopes = predTolSlopes, T1 = T1))
 }
 
-toleranceAnalysis(dataset = art2al_SUMdf)
+t <- toleranceAnalysis(dataset = art2al_SUMdf)
+# "G=30.2 ,df=8 ,p=0.000197"
+# "G=30.6 ,df=9 ,p=0.000341"
+# "G=24 ,df=6 ,p=0.000513"
+pdf(file = "../figures/Fig4.pdf",
+    width = 12, height = 6)
+t$T1
+dev.off()
 
-my.cor.test <- function(x,y){
-  tryCatch({cor.test(x, y, na.action = "na.omit", method = "spearman")$p.value},
-           error = function(e) NA)
-}))
-
-# http://www.sthda.com/english/wiki/correlation-test-between-two-variables-in-r
-
-result
-
-dataset = art2al_SUMdf
-
-df = data.frame(Mouse_genotype = NA, infection_isolate = NA,
-                 S = NA, pval = NA, Rho = NA)
-for (i in unique(dataset$Mouse_genotype)) {
-  for (j in unique(dataset$infection_isolate)){
-    dataset = dataset[dataset$Mouse_genotype %in% i &
-                        dataset$infection_isolate %in% j,]
-    
-    dataset = dataset[c("relWL", "Mouse_genotype", "infection_isolate", "max.OPG")]
-    # add a null point for zero intercept
-    dataset <- rbind(dataset[1,], dataset)
-    dataset[1,c("relWL", "max.OPG")] <- c(0,0)
-    c <- my.cor.test(dataset$relWL, dataset$max.OPG)
-      # S = , p-value = 
-      # alternative hypothesis: true rho is not equal to 0
-      # sample estimates: Rho
-      d <- data.frame(Mouse_genotype = unique(dataset$Mouse_genotype), 
-                      infection_isolate = unique(dataset$infection_isolate),
-                      S = c$statistic, pval = c$p.value, Rho = c$estimate)
-      df <- merge(df, d)
-  }
+##### Spearman
+func <- function(dataset, what){
+  # dataset = dataset[c("relWL", "Mouse_genotype", "infection_isolate", "max.OPG")]
+  # add a null point for zero intercept
+  dataset <- rbind(dataset[1,], dataset)
+  dataset[1,c("relWL", "max.OPG")] <- c(0,0)
+  c <- cor.test(dataset$relWL, dataset$max.OPG, method = "spearman")
+  if (what == "pvalue"){
+    round(c$p.value, 3)
+  } else if (what == "N"){
+    nrow(na.omit(data.frame(dataset$relWL, dataset$max.OPG))) -1
+  } else if (what == "statistic"){
+    round(c$statistic, 2)
+  } else if (what == "rho"){
+    round(c$estimate, 2)
+    }
 }
 
-df
-
-getStuff <- function(dataset){
-  sapply(, function(mg){
-    sapply(levels(dataset$infection_isolate), function(ii){
-      # APA format (note the S should be subscript)
-      
-    })}
-  )
-}
-getStuff(dataset)
-      
-      l <- lm(relWL ~ 0 + max.OPG, data = dataset[dataset$Mouse_genotype %in% mg & 
-                                                    dataset$infection_isolate %in% ii,])
-      if (what == "rsquared") {
-        round(summary(l)$r.sq, 2)
-      }else if (what == "N") {
-        nobs(l)
-      } else if (what == "slope") {
-        round(l$coefficients * 1e6, 2)
-      }})})
+func2 <- function(dataset){
+  dataset$group = paste0(dataset$Mouse_genotype, dataset$infection_isolate)  
+  P <- plyr::ddply(dataset, .(group), func, what = "pvalue")
+  names(P)[names(P) %in% "V1"] <- "pvalue"
+  N <- plyr::ddply(dataset, .(group), func, what = "N")
+  names(N)[names(N) %in% "V1"] <- "N"
+  S <- plyr::ddply(dataset, .(group), func, what = "statistic")
+  names(S)[names(S) %in% "V1"] <- "statistic"
+  R <- plyr::ddply(dataset, .(group), func, what = "rho")
+  names(R)[names(R) %in% "V1"] <- "rho"
+  merge(merge(merge(P, N),S), R)
 }
 
-
-
-
-# Calculate slopes, N, R-squared by group
-getStuff <- function(what){
-  sapply(levels(dataset$Mouse_genotype), function(mg){
-    sapply(levels(dataset$infection_isolate), function(ii){
-      l <- lm(relWL ~ 0 + max.OPG, data = dataset[dataset$Mouse_genotype %in% mg & 
-                                                    dataset$infection_isolate %in% ii,])
-      if (what == "rsquared") {
-        round(summary(l)$r.sq, 2)
-      }else if (what == "N") {
-        nobs(l)
-      } else if (what == "slope") {
-        round(l$coefficients * 1e6, 2)
-      }
-    })
-  })
-}
-
-getStuff("slope")
-
-l$coefficients * 1e6
-
-R <- melt(getStuff(what = "rsquared"))
-names(R) <- c("infection_isolate", "Mouse_genotype", "rsquared")
-N <- melt(getStuff(what = "N"))
-names(N) <- c("infection_isolate", "Mouse_genotype", "N")
-S <- melt(getStuff(what = "slope"))
-names(S) <- c("infection_isolate", "Mouse_genotype", "slope")
-
-merge(R, N, all=T)
-
-ggpred
-
-
-### with full dataset
-tolAll <- toleranceAnalysis(dataset = art2al_SUMdf)
-
-tolAll
-
-
+final <- merge(func2(art2al_SUMdf), t$predTolSlopes)
+final <- final[order(final$infection_isolate),]
+write.csv(final, file = "../figures/TabToleranceSpearman.csv", row.names = F)
 
 ### with conservative dataset
 tol77mice <- toleranceAnalysis(dataset = SUBsummaryDF77mice)
 tol77mice$T1
 
-
 pdf(file = "../figures/tol77mice.pdf",
     width = 12, height = 6)
 tol77mice$FigTOL
 dev.off()
+
+final77 <- merge(func2(SUBsummaryDF77mice), tol77mice$predTolSlopes)
+final77 <- final77[order(final77$infection_isolate),]
+final77
+
+write.csv(final77, file = "../figures/TabToleranceSpearman_77mice.csv", row.names = F)
