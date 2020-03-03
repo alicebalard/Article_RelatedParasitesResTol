@@ -429,10 +429,8 @@ dev.off()
 ########################################
 ### Second part: assessing tolerance ###
 ########################################
-# toleranceAnalysis <- function(dataset){
-dataset = art2al_SUMdf
-  
-modfull <- lm(relWL ~ 0 + max.OPG : (infection_isolate * Mouse_genotype), data = dataset)
+toleranceAnalysis <- function(dataset){
+  modfull <- lm(relWL ~ 0 + max.OPG : (infection_isolate * Mouse_genotype), data = dataset)
   modNOmouse <- lm(relWL ~ 0 + max.OPG : (infection_isolate), data = dataset)
   modNOisolate <- lm(relWL ~ 0 + max.OPG : (Mouse_genotype), data = dataset)
   modNOint <- lm(relWL ~ 0 + max.OPG : (infection_isolate + Mouse_genotype), data = dataset)
@@ -444,38 +442,8 @@ modfull <- lm(relWL ~ 0 + max.OPG : (infection_isolate * Mouse_genotype), data =
   testInteraction <- homemadeGtest(modfull, modNOint)
   # [1] "G=24 ,df=6 ,p=0.000513"
   
-  # Calculate slopes, N, R-squared by group
-  getStuff <- function(what){
-    sapply(levels(dataset$Mouse_genotype), function(mg){
-      sapply(levels(dataset$infection_isolate), function(ii){
-        l <- lm(relWL ~ 0 + max.OPG, data = dataset[dataset$Mouse_genotype %in% mg & 
-                                                      dataset$infection_isolate %in% ii,])
-        if (what == "rsquared") {
-          round(summary(l)$r.sq, 2)
-        }else if (what == "N") {
-          nobs(l)
-        } else if (what == "slope") {
-          round(l$coefficients * 1e6, 2)
-        }
-      })
-    })
-  }
-  
-  getStuff("slope")
-  
-  l$coefficients * 1e6
-  
-  R <- melt(getStuff(what = "rsquared"))
-  names(R) <- c("infection_isolate", "Mouse_genotype", "rsquared")
-  N <- melt(getStuff(what = "N"))
-  names(N) <- c("infection_isolate", "Mouse_genotype", "N")
-  S <- melt(getStuff(what = "slope"))
-  names(S) <- c("infection_isolate", "Mouse_genotype", "slope")
- 
-  merge(R, N, all=T)
-  
-  
-  ## And plot
+  # Calculate slopes for each group:
+  predTolSlopes <- ggpredict(modfull, terms = c("Mouse_genotype", "infection_isolate"), condition = c(max.OPG = 1000000))  ## And plot
   predTolSlopes <- data.frame(predTolSlopes)
   names(predTolSlopes)[names(predTolSlopes) %in% c("x", "group")] <- c("Mouse_genotype", "infection_isolate")
   
@@ -507,23 +475,103 @@ modfull <- lm(relWL ~ 0 + max.OPG : (infection_isolate * Mouse_genotype), data =
     coord_cartesian(ylim=c(0, 0.30)) +
     theme(legend.position = "top")
   
-  ## Means & 95% CI of each slope
-  T2 <- ggplot(predTolSlopes, aes(x = infection_isolate, y = predicted, col = Mouse_genotype)) +
-    geom_point(size = 4, position = position_dodge(width = .5)) +
-    geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = .1,
-                  position = position_dodge(width = .5)) +
-    scale_y_continuous(labels = scales::percent_format(accuracy = 1),
-                       name = "(predicted) relative weight loss per million OPG") +
-    scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
-                       name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
-    theme(legend.position = "top") 
-  
-  FigTOL <- cowplot::plot_grid(T1, T2,
-                               labels=c("A", "B"), label_size = 20)
-  
   return(list(testIsolate = testIsolate, testMouse = testMouse, testInteraction = testInteraction,
-              predTolSlopes = predTolSlopes, T1 = T1, T2 = T2, FigTOL = FigTOL))
+              predTolSlopes = predTolSlopes, T1 = T1))
 }
+
+toleranceAnalysis(dataset = art2al_SUMdf)
+
+my.cor.test <- function(x,y){
+  tryCatch({cor.test(x, y, na.action = "na.omit", method = "spearman")$p.value},
+           error = function(e) NA)
+}))
+
+# http://www.sthda.com/english/wiki/correlation-test-between-two-variables-in-r
+
+result
+
+dataset = art2al_SUMdf
+
+df = data.frame(Mouse_genotype = NA, infection_isolate = NA,
+                 S = NA, pval = NA, Rho = NA)
+for (i in unique(dataset$Mouse_genotype)) {
+  for (j in unique(dataset$infection_isolate)){
+    dataset = dataset[dataset$Mouse_genotype %in% i &
+                        dataset$infection_isolate %in% j,]
+    
+    dataset = dataset[c("relWL", "Mouse_genotype", "infection_isolate", "max.OPG")]
+    # add a null point for zero intercept
+    dataset <- rbind(dataset[1,], dataset)
+    dataset[1,c("relWL", "max.OPG")] <- c(0,0)
+    c <- my.cor.test(dataset$relWL, dataset$max.OPG)
+      # S = , p-value = 
+      # alternative hypothesis: true rho is not equal to 0
+      # sample estimates: Rho
+      d <- data.frame(Mouse_genotype = unique(dataset$Mouse_genotype), 
+                      infection_isolate = unique(dataset$infection_isolate),
+                      S = c$statistic, pval = c$p.value, Rho = c$estimate)
+      df <- merge(df, d)
+  }
+}
+
+df
+
+getStuff <- function(dataset){
+  sapply(, function(mg){
+    sapply(levels(dataset$infection_isolate), function(ii){
+      # APA format (note the S should be subscript)
+      
+    })}
+  )
+}
+getStuff(dataset)
+      
+      l <- lm(relWL ~ 0 + max.OPG, data = dataset[dataset$Mouse_genotype %in% mg & 
+                                                    dataset$infection_isolate %in% ii,])
+      if (what == "rsquared") {
+        round(summary(l)$r.sq, 2)
+      }else if (what == "N") {
+        nobs(l)
+      } else if (what == "slope") {
+        round(l$coefficients * 1e6, 2)
+      }})})
+}
+
+
+
+
+# Calculate slopes, N, R-squared by group
+getStuff <- function(what){
+  sapply(levels(dataset$Mouse_genotype), function(mg){
+    sapply(levels(dataset$infection_isolate), function(ii){
+      l <- lm(relWL ~ 0 + max.OPG, data = dataset[dataset$Mouse_genotype %in% mg & 
+                                                    dataset$infection_isolate %in% ii,])
+      if (what == "rsquared") {
+        round(summary(l)$r.sq, 2)
+      }else if (what == "N") {
+        nobs(l)
+      } else if (what == "slope") {
+        round(l$coefficients * 1e6, 2)
+      }
+    })
+  })
+}
+
+getStuff("slope")
+
+l$coefficients * 1e6
+
+R <- melt(getStuff(what = "rsquared"))
+names(R) <- c("infection_isolate", "Mouse_genotype", "rsquared")
+N <- melt(getStuff(what = "N"))
+names(N) <- c("infection_isolate", "Mouse_genotype", "N")
+S <- melt(getStuff(what = "slope"))
+names(S) <- c("infection_isolate", "Mouse_genotype", "slope")
+
+merge(R, N, all=T)
+
+ggpred
+
 
 ### with full dataset
 tolAll <- toleranceAnalysis(dataset = art2al_SUMdf)
