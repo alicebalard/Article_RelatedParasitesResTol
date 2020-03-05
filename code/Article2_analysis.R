@@ -326,7 +326,7 @@ lsmeans(mod88, pairwise ~ max.OPG : Mouse_genotype, adjust = "tukey")
 
 mod88_77 <- lm(relWL ~ 0 + max.OPG : Mouse_genotype, 
             data = na.omit(SUBsummaryDF77mice[SUBsummaryDF77mice$infection_isolate %in% "Brandenburg88 (E. falciformis)",]))
-lsmeans(mod88_77, pairwise ~ max.OPG : Mouse_genotype, adjust = "tukey")
+lsmeans(mod88_77, pairwise ~ max.OPG : Mouse_genotype, adjust = "tukey") # consistent
 
 ##########
 ## plot ##
@@ -393,7 +393,8 @@ plotI_STRAINS_77mice
 # Fig 3.
 Fig3 <- cowplot::plot_grid(plotR_STRAINS + theme(legend.position = "none"),
                            plotI_STRAINS + theme(legend.position = "none"),
-                           labels=c("A", "B"), label_size = 20)
+                           plotR_STRAINS,
+                           labels=c("A", "B", "C"), label_size = 20)
 
 Fig3
 pdf(file = "../figures/Fig3.pdf",
@@ -456,10 +457,15 @@ names(predTolSlopes)[names(predTolSlopes) %in% c("predicted", "conf.low",  "std.
   paste(names(predTolSlopes)[names(predTolSlopes) %in% c("predicted", "conf.low",  "std.error", "conf.high")], "Tol", sep = "_")
 
 finalplotDF <- merge(predRes, predTolSlopes)
-
-ggplot(finalplotDF, aes(x = predicted_Res, y = predicted_Tol)) +
-  geom_point(aes(col = Mouse_genotype), size = 5)+
-  scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
+finalplot <- ggplot(finalplotDF, aes(x = predicted_Res, y = predicted_Tol)) +
+  geom_point( aes(col = Mouse_genotype, pch = infection_isolate), size = 5)+
+  scale_fill_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
                      name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
-  geom_errorbar()
-  geom_line(aes(group = infection_isolate))
+  geom_smooth(method = "lm", se = F, aes(group = infection_isolate, linetype = infection_isolate)) +
+  scale_color_manual(values = as.character(levels(forMap$color)))  +
+  scale_x_continuous("(predicted) maximum oocysts per gram of feces (x10e6)", 
+                     breaks = seq(0, 3500000, 500000),
+                     labels = seq(0, 3500000, 500000)/1000000)+
+  scale_y_continuous("% weight loss by million OPG shed", labels = scales::percent,)
+finalplot
+  
