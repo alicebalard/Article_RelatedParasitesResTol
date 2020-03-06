@@ -266,6 +266,14 @@ names(predTolSlopes)[names(predTolSlopes) %in% c("x", "group")] <- c("Mouse_geno
 predTolSlopes$group <- paste0(predTolSlopes$Mouse_genotype, predTolSlopes$infection_isolate)
 predTolSlopes
 
+predTolSlopes77 <- ggpredict(testSignif(SUBsummaryDF77mice, "TOL")$modfull, 
+                           terms = c("Mouse_genotype", "infection_isolate"), 
+                           condition = c(max.OPG = 1000000))  ## For a million OPG
+predTolSlopes77 <- data.frame(predTolSlopes77)
+names(predTolSlopes77)[names(predTolSlopes77) %in% c("x", "group")] <- c("Mouse_genotype", "infection_isolate")
+predTolSlopes77$group <- paste0(predTolSlopes77$Mouse_genotype, predTolSlopes77$infection_isolate)
+predTolSlopes77
+
 ######### STEP 2. If parasites significant, model within this infection group
 ### Res
 sapply(levels(art2al_SUMdf$infection_isolate), function(x){
@@ -379,7 +387,7 @@ get_plotI_STRAINS <- function(dataframe){
                        name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
     xlab("Eimeria isolate") +
     ggtitle("Maximum weight loss \n(mean and 95%CI)") +
-    scale_y_continuous(labels = scales::percent, 
+    scale_y_continuous(labels = scales::percent_format(accuracy = 5L), 
                        name = "(predicted) maximum weight loss compared to day of infection")+
     theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
     geom_text(aes(x=posx.2,y=0,label=getNs("relWL", dataframe)),vjust=0)
@@ -414,20 +422,21 @@ dev.off()
 
 ### Tolerance
 
-# make line up to 5e6 OPG for plot
-pts <- predTolSlopes
-pts$predicted <- pts$predicted*5
-pts$relWL_OPGnull <- 0
-names(pts)[names(pts) %in% c("predicted")] <- "relWL_5MOPG"
-pts <- melt(pts, measure.vars = c("relWL_OPGnull", "relWL_5MOPG"))
-names(pts)[names(pts) %in% c("variable", "value")] <- c("max.OPG", "relWL")
-pts$max.OPG <- as.character(pts$max.OPG)
-pts$max.OPG[pts$max.OPG %in% "relWL_OPGnull"] <- "0"
-pts$max.OPG[pts$max.OPG %in% "relWL_5MOPG"] <- "5e6"
-pts$max.OPG <- as.numeric(pts$max.OPG)
-pts$group <- factor(paste0(pts$Mouse_genotype, pts$infection_isolate))
-
-T1 <- ggplot(pts, aes(x = max.OPG, y = relWL, col = Mouse_genotype)) +
+makeTolPlot <- function(mypredTolSlopes, mydata){
+  # make line up to 5e6 OPG for plot
+  pts <- mypredTolSlopes
+  pts$predicted <- pts$predicted*5
+  pts$relWL_OPGnull <- 0
+  names(pts)[names(pts) %in% c("predicted")] <- "relWL_5MOPG"
+  pts <- melt(pts, measure.vars = c("relWL_OPGnull", "relWL_5MOPG"))
+  names(pts)[names(pts) %in% c("variable", "value")] <- c("max.OPG", "relWL")
+  pts$max.OPG <- as.character(pts$max.OPG)
+  pts$max.OPG[pts$max.OPG %in% "relWL_OPGnull"] <- "0"
+  pts$max.OPG[pts$max.OPG %in% "relWL_5MOPG"] <- "5e6"
+  pts$max.OPG <- as.numeric(pts$max.OPG)
+  pts$group <- factor(paste0(pts$Mouse_genotype, pts$infection_isolate))
+  
+  ggplot(pts, aes(x = max.OPG, y = relWL, col = Mouse_genotype)) +
     geom_line(aes(group = group)) +
     facet_grid(.~infection_isolate) +
     scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
@@ -437,15 +446,22 @@ T1 <- ggplot(pts, aes(x = max.OPG, y = relWL, col = Mouse_genotype)) +
                        labels = seq(0, 5000000, 1000000)/1000000) +
     scale_y_continuous(name = "maximum weight loss compared to day of infection",
                        breaks = seq(0,0.3, 0.05), 
-                       labels = scales::percent) +
-    geom_point(data = art2al_SUMdf, size = 4, pch = 1)+
+                       labels = scales::percent_format(accuracy = 5L)) +
+    geom_point(data = mydata, size = 4, pch = 1)+
     coord_cartesian(ylim=c(0, 0.30)) +
     theme(legend.position = "top")
-T1  
+}
 
+T1 <- makeTolPlot(predTolSlopes, art2al_SUMdf)
 pdf(file = "../figures/Fig4.pdf",
     width = 12, height = 6)
-t$T1
+T1
+dev.off()
+
+T2 <- makeTolPlot(predTolSlopes77, SUBsummaryDF77mice)
+pdf(file = "../figures/Figtolslopes77.pdf",
+    width = 12, height = 6)
+T2
 dev.off()
 
 #### Final: Res-Tol plot to illustrate
@@ -466,6 +482,6 @@ finalplot <- ggplot(finalplotDF, aes(x = predicted_Res, y = predicted_Tol)) +
   scale_x_continuous("(predicted) maximum oocysts per gram of feces (x10e6)", 
                      breaks = seq(0, 3500000, 500000),
                      labels = seq(0, 3500000, 500000)/1000000)+
-  scale_y_continuous("% weight loss by million OPG shed", labels = scales::percent,)
+  scale_y_continuous("% weight loss by million OPG shed", labels = scales::percent_format(accuracy = 5L))
 finalplot
   
