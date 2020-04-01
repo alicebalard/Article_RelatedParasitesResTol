@@ -8,10 +8,20 @@
 # Mouse AA_0139, HI = 0.85
 
 #### Load data and functions within ####
-source("1_dataPreparation.R")
+source("dataPreparationArticle2.R")
 library(cowplot)
 library(ggplot2)
 library(dplyr)
+
+## Different datasets as follow:
+
+# FULL = DSart2 / art2SummaryDF
+
+# conservative 1 = remove mice without oocysts at peak day
+# DSart2_conservative1 ; art2SummaryDF_conservative1 # 99 mice
+
+# conservative 2 = remove mice with contamination or anthelminthic
+# DSart2_conservative2 ; art2SummaryDF_conservative2 # 68 mice
 
 ###### Map of our samples FIGURE 1 (with design) ######
 hmhzline <- read.csv("../data/HMHZ.csv")
@@ -36,44 +46,37 @@ map
 # map
 # dev.off()
 
-######################################
-########## Read information ##########
-######################################
+###### what is the overall peak day for each parasite isolate? ######
+aggregate(art2SummaryDF$dpi_max.OPG,
+          list(art2SummaryDF$infection_isolate), 
+          function(x) {paste(length(x), median(x), round(sd(x),2))})
+# Brandenburg139 (E. ferrisi) 25 6 0.73
+# Brandenburg64 (E. ferrisi) 56 6 1.01
+# Brandenburg88 (E. falciformis) 27 8 1.78
+aggregate(art2SummaryDF$dpi_minWeight,
+          list(art2SummaryDF$infection_isolate), 
+          function(x) {paste(length(x), median(x), round(sd(x),2))})
+# Brandenburg139 (E. ferrisi) 25 5 2.14
+# Brandenburg64 (E. ferrisi) 56 5 1.92
+# Brandenburg88 (E. falciformis) 27 9 1.49
 
-## Read batches (Exp_003 treated by anthelminthcs only)
-table(art2al_SUMdf$infection_isolate, art2al_SUMdf$Mouse_genotype, art2al_SUMdf$Exp_ID)
-
-## Read anthelminthics
-table(art2al_SUMdf$infection_isolate, art2al_SUMdf$Mouse_genotype, art2al_SUMdf$anth)
-
-## Make subdata, removing coinfected (N=9) and anthelminthic trt mice (N=22)
-contaAnimals <- art2al_RAWdf[art2al_RAWdf$oocysts.per.tube > 0 & !is.na(art2al_RAWdf$oocysts.per.tube) &
-                               art2al_RAWdf$dpi == 0, "EH_ID"]
-SUBsummaryDF77mice <- art2al_SUMdf[!art2al_SUMdf$EH_ID %in% contaAnimals &
-                                         art2al_SUMdf$anth == FALSE,]
-
-## which mice?
-problemMice <- art2al_SUMdf[art2al_SUMdf$EH_ID %in% contaAnimals |
-               art2al_SUMdf$anth == TRUE,]
-
-table(problemMice$Mouse_genotype, problemMice$infection_isolate)
-  # 2 SCHUNT & 1 PWD falciformis, rest ferrisi
-table(art2al_SUMdf$Mouse_genotype, art2al_SUMdf$infection_isolate)
+## Make table with batches (only batch 1 was treated with anthelminthics)
+resume <- data.frame(table(art2SummaryDF$Batch, art2SummaryDF$Mouse_genotype, art2SummaryDF$infection_isolate))
+resume <- resume[order(resume$Var1) & resume$Freq != 0,]
+test <- data.frame(Batch = resume$Var1)
+test$group <- paste(resume$Var2,resume$Var3)
+test$freq <- resume$Freq
+test <- test[order(test$Batch),]
+test <- reshape(test, idvar = "Batch", v.names = "freq", timevar = "group", direction="wide")
+# write.csv(test,
+#           "../figures/TableAllBatches.csv", row.names = F) # NB done for FULL DS
 
 ## Age of mice
-range(as.numeric(art2al_RAWdf$ageAtInfection))
-
-###### what is the overall peak day for each parasite isolate? ######
-aggregate(art2al_SUMdf$dpi_max.OPG,
-          list(art2al_SUMdf$infection_isolate), 
-          function(x) {paste(length(x), median(x), round(sd(x),2))})
-aggregate(art2al_SUMdf$dpi_minWeight,
-          list(art2al_SUMdf$infection_isolate), 
-          function(x) {paste(length(x), median(x), round(sd(x),2))})
+range(as.numeric(art2SummaryDF$ageAtInfection))
 
 ###### what is the overall prepatent period for each parasite isolate? ######
 d <- as.data.frame(
-  art2al_RAWdf[!is.na(art2al_RAWdf$OPG) & art2al_RAWdf$OPG > 0,] %>% 
+  DSart2[!is.na(DSart2$OPG) & DSart2$OPG > 0,] %>% 
     dplyr::group_by(EH_ID) %>%
     dplyr::slice(which.min(dpi)) %>%
     dplyr::select(EH_ID, weight, HI, startingWeight, ageAtInfection, Sex,
@@ -82,9 +85,12 @@ d <- as.data.frame(
 aggregate(d$dpi,
           list(d$infection_isolate), 
           function(x) {paste(length(x), median(x), round(sd(x),2))})
+# 1    Brandenburg139 (E. ferrisi)  25 5 0.2
+# 2     Brandenburg64 (E. ferrisi) 56 5 1.58
+# 3 Brandenburg88 (E. falciformis) 23 7 2.57
 
 ###### Course of infection FIGURE 2 ######
-forplot <- art2al_RAWdf %>%
+forplot <- DSart2 %>%
   group_by(infection_isolate, dpi) %>%
   summarise(mean = mean(OPG*10e-6, na.rm = TRUE),
             sd = sd(OPG*10e-6, na.rm = TRUE),
@@ -97,13 +103,12 @@ F2.1 <- ggplot(forplot, aes(dpi, mean, group = infection_isolate, col = infectio
   geom_point(size = 3) +
   geom_line() +
   geom_errorbar(aes(ymin = lower.ci, ymax = upper.ci), width = .2)+
-  ylab("OPG (x10^6)") +
+  ylab("OPG (million)") +
   scale_x_continuous(breaks = 0:11, name = "days post infection") +
   theme(legend.position = c(0.25, 0.8)) +
   labs(color = "Eimeria isolate") 
-F2.1
 
-forplot2 <- art2al_RAWdf %>%
+forplot2 <-  DSart2 %>%
   group_by(infection_isolate, dpi) %>%
   summarise(mean = mean(relativeWeight, na.rm = TRUE),
             sd = sd(relativeWeight, na.rm = TRUE),
@@ -121,49 +126,29 @@ F2.2 <- ggplot(forplot2, aes(dpi, mean, group = infection_isolate,
   scale_x_continuous(breaks = 0:11, name = "days post infection") +
   theme(legend.position = c(0.25, 0.2)) +
   labs(color = "Eimeria isolate") 
-F2.2
 
 Fig2 <- cowplot::plot_grid(F2.1, F2.2,
                   labels=c("A", "B"), label_size = 20)
+  
 # pdf(file = "../figures/Fig2.pdf", width = 10, height = 5)
 Fig2
 # dev.off()
 
 ## Correlation sum of oocysts / peak oocysts
-ggplot(art2al_SUMdf, aes(sumoocysts.per.tube, max.oocysts.per.tube)) + 
+ggplot(art2SummaryDF, aes(sumoocysts.per.tube, max.oocysts.per.tube)) + 
   geom_smooth(method = "lm")+ geom_point()
 
-cor(art2al_SUMdf$sumoocysts.per.tube , art2al_SUMdf$max.oocysts.per.tube,
+cor(art2SummaryDF$sumoocysts.per.tube , art2SummaryDF$max.oocysts.per.tube,
     method = "pearson")
 
 ###############################################################
 ########## Define our indexes and their distribution ##########
 ###############################################################
-
 ## RESISTANCE: inverse of OPG
-## We round
-xRes <- round(as.numeric(na.omit(art2al_SUMdf$max.OPG)))
+xRes <- round(as.numeric(na.omit(art2SummaryDF$max.OPG)))
 hist(xRes, breaks = 100)
-descdist(xRes)
-#pdf("../figures/supfig1.1.pdf")
-findGoodDist(x = xRes, distribs = c("normal", "negative binomial"), 
-             distribs2 = c("norm", "nbinom"))
-#dev.off()
+findGoodDist(x = xRes, distribs = c("norm", "nbinom"))
 ### nbinom for resistance
-
-## IMPACT ON HEALTH
-xImp <- as.numeric(na.omit(art2al_SUMdf$relWL))
-hist(xImp, breaks = 100)
-descdist(xImp)
-#pdf("../figures/supfig1.2.pdf")
-findGoodDist(x = xImp+ 0.01, distribs = c("normal", "weibull"), 
-             distribs2 = c("norm", "weibull"))
-#dev.off()
-### weibull for impact on health
-art2al_SUMdf$impact <- art2al_SUMdf$relWL + 0.01
-SUBsummaryDF77mice$impact <- SUBsummaryDF77mice$relWL + 0.01
-
-# 9 mice died before peak
 
 ################################
 ##### Statistical analyses #####
@@ -175,17 +160,15 @@ homemadeGtest <- function(full, base){
   pvalue <- 1 - stats::pchisq(2*dLL, df=dDF)
   formatC(pvalue, format = "e", digits = 2)
   chisqvalue <- stats::qchisq(p = pvalue, df=dDF)
-  print(paste0("G=",round(2*dLL, 1), " ,df=", dDF, " ,p=", pvalue))
+  return(paste0("G=",round(2*dLL, 1), " ,df=", dDF, " ,p=", signif(pvalue, digits=2)))
 }
 
 ## LRT significance for each factor
 myLRTsignificanceFactors <- function(modFull, modPar, modMouse, modInt){
-  print("significance of parasite:")
-  homemadeGtest(modFull, modPar)
-  print("significance of mouse:")
-  homemadeGtest(modFull, modMouse)
-  print("significance of interaction:")
-  homemadeGtest(modFull, modInt)
+  # print("significance of parasite:")
+  return(list(signifParasite = homemadeGtest(modFull, modPar),
+              signifMouse = homemadeGtest(modFull, modMouse),
+              signifInter = homemadeGtest(modFull, modInt)))
 }
 
 testSignif <- function(dataframe, which){
@@ -205,7 +188,8 @@ testSignif <- function(dataframe, which){
     modMous <- lm(relWL ~ 0 + max.OPG : (infection_isolate), data = dataframe)
     modinter <- lm(relWL ~ 0 + max.OPG : (infection_isolate + Mouse_genotype), data = dataframe)
   }
-  return(list(modfull = modFULL, LRT = myLRTsignificanceFactors(modFULL, modPara, modMous, modinter)))
+  return(list(modfull = modFULL, 
+              LRT = myLRTsignificanceFactors(modFULL, modPara, modMous, modinter)))
 }
 
 testSignifWithinParas <- function(dataframe, which){
@@ -219,7 +203,6 @@ testSignifWithinParas <- function(dataframe, which){
     modFULL <- lm(relWL ~ 0 + max.OPG : Mouse_genotype, data = dataframe)
     mod0 <- lm(relWL ~ 0 + max.OPG, data = dataframe)
   }
-  print("significance of mouse:")
   G <- homemadeGtest(modFULL, mod0)
   return(list(modfull = modFULL, LRT = G))
 }
@@ -229,112 +212,105 @@ testSignifWithinParas <- function(dataframe, which){
 ######### STEP 3. If mouse significant, post-hoc test
 ######### Plot all
 
+# to apply on our 3 DF:
+MyListSumma <- list(full = art2SummaryDF, cons1 = art2SummaryDF_conservative1, 
+                    cons2 = art2SummaryDF_conservative2)
+
 ######### STEP 1. Full model to see significance of all variables
 
 ### Res
-testSignif(art2al_SUMdf, "RES")$LRT 
-testSignif(SUBsummaryDF77mice, "RES")$LRT # consistent
+lapply(MyListSumma, function(x){testSignif(x,"RES")$LRT}) # consistent
 # Predicted values:
-predRes <- ggpredict(testSignif(art2al_SUMdf, "RES")$modfull, terms = c("Mouse_genotype", "infection_isolate"))
-predRes <- (data.frame(predRes))
-names(predRes)[names(predRes) %in% c("x", "group")] <- c("Mouse_genotype", "infection_isolate")
-
-predRes77 <- ggpredict(testSignif(SUBsummaryDF77mice, "RES")$modfull, terms = c("Mouse_genotype", "infection_isolate"))
-predRes77 <- (data.frame(predRes77))
-predRes77
+getPred <- function(x, which){
+  pred <- ggpredict(testSignif(x, which)$modfull, terms = c("Mouse_genotype", "infection_isolate"))
+  pred <- (data.frame(pred))
+  names(pred)[names(pred) %in% c("x", "group")] <- c("Mouse_genotype", "infection_isolate")
+  return(pred)}
+predResList <- lapply(MyListSumma, function(x) getPred(x, "RES"))
 
 ### Imp
-testSignif(art2al_SUMdf, "IMP")$LRT
-testSignif(SUBsummaryDF77mice, "IMP")$LRT # consistent
-predImp <- ggpredict(testSignif(art2al_SUMdf, "IMP")$modfull, terms = c("Mouse_genotype", "infection_isolate"))
-predImp <- data.frame(predImp)
-predImp
-# art2al_SUMdf %>%
-#   group_by(Mouse_genotype, infection_isolate) %>% 
-#   summarise(meanImp = mean(relWL, na.rm = T))
+lapply(MyListSumma, function(x){testSignif(x,"IMP")$LRT}) # consistent
+# Predicted values:
+predImpList <- lapply(MyListSumma, function(x) getPred(x, "IMP"))
 
 ### Tol
-testSignif(art2al_SUMdf, "TOL")$LRT
-testSignif(SUBsummaryDF77mice, "TOL")$LRT # consistent
+lapply(MyListSumma, function(x){testSignif(x,"TOL")$LRT}) # consistent
 
 # Predicted values of slopes:
-predTolSlopes <- ggpredict(testSignif(art2al_SUMdf, "TOL")$modfull, 
-                           terms = c("Mouse_genotype", "infection_isolate"), 
-                           condition = c(max.OPG = 1000000))  ## For a million OPG
-predTolSlopes <- data.frame(predTolSlopes)
-names(predTolSlopes)[names(predTolSlopes) %in% c("x", "group")] <- c("Mouse_genotype", "infection_isolate")
-predTolSlopes$group <- paste0(predTolSlopes$Mouse_genotype, predTolSlopes$infection_isolate)
-predTolSlopes
+getPredTol <- function(x){
+  predTolSlopes <- ggpredict(testSignif(x, "TOL")$modfull, terms = c("Mouse_genotype", "infection_isolate"), 
+                             condition = c(max.OPG = 1000000))  ## For a million OPG
+  predTolSlopes <- data.frame(predTolSlopes)
+  names(predTolSlopes)[names(predTolSlopes) %in% c("x", "group")] <- c("Mouse_genotype", "infection_isolate")
+  predTolSlopes$group <- paste0(predTolSlopes$Mouse_genotype, predTolSlopes$infection_isolate)
+  return(predTolSlopes)}
 
-predTolSlopes77 <- ggpredict(testSignif(SUBsummaryDF77mice, "TOL")$modfull, 
-                           terms = c("Mouse_genotype", "infection_isolate"), 
-                           condition = c(max.OPG = 1000000))  ## For a million OPG
-predTolSlopes77 <- data.frame(predTolSlopes77)
-names(predTolSlopes77)[names(predTolSlopes77) %in% c("x", "group")] <- c("Mouse_genotype", "infection_isolate")
-predTolSlopes77$group <- paste0(predTolSlopes77$Mouse_genotype, predTolSlopes77$infection_isolate)
-predTolSlopes77
+predTolList <- lapply(MyListSumma, getPredTol)
 
 ######### STEP 2. If parasites significant, model within this infection group
-### Res
-sapply(levels(art2al_SUMdf$infection_isolate), function(x){
-  testSignifWithinParas(art2al_SUMdf[art2al_SUMdf$infection_isolate %in% x,], "RES")$LRT})
-# Brandenburg139 (E. ferrisi)     Brandenburg64 (E. ferrisi) Brandenburg88 (E. falciformis) 
-# "G=4.6 ,df=3 ,p=0.201444"       "G=19 ,df=3 ,p=0.000276"     "G=11.6 ,df=3 ,p=0.008946"
-sapply(levels(SUBsummaryDF77mice$infection_isolate), function(x){
-  testSignifWithinParas(SUBsummaryDF77mice[SUBsummaryDF77mice$infection_isolate %in% x,], "RES")$LRT})
-# consistent
+listPar <- list("Brandenburg139 (E. ferrisi)","Brandenburg64 (E. ferrisi)", "Brandenburg88 (E. falciformis)")
+names(listPar) <- c("Brandenburg139", "Brandenburg64", "Brandenburg88")
 
+### Res
+lapply(MyListSumma, function(xlist){
+  lapply(listPar, function(xpar){
+    testSignifWithinParas(xlist[xlist$infection_isolate %in% xpar,], "RES")$LRT})
+}) # consistent. 64 and 88
+  
 ### Imp
-sapply(levels(art2al_SUMdf$infection_isolate), function(x){
-  testSignifWithinParas(art2al_SUMdf[art2al_SUMdf$infection_isolate %in% x,], "IMP")$LRT})
-# Brandenburg139 (E. ferrisi)             Brandenburg64 (E. ferrisi)         Brandenburg88 (E. falciformis) 
-# "G=0.6 ,df=3 ,p=0.9035"  "G=14.6 ,df=3 ,p=0.00217" "G=18.3 ,df=3 ,p=0.000379" 
-sapply(levels(SUBsummaryDF77mice$infection_isolate), function(x){
-  testSignifWithinParas(SUBsummaryDF77mice[SUBsummaryDF77mice$infection_isolate %in% x,], "IMP")$LRT})
-# consistent
+lapply(MyListSumma, function(xlist){
+  lapply(listPar, function(xpar){
+    testSignifWithinParas(xlist[xlist$infection_isolate %in% xpar,], "IMP")$LRT})
+}) # consistent. 64 and 88
 
 ### Tol
-sapply(levels(art2al_SUMdf$infection_isolate), function(x){
-  testSignifWithinParas(art2al_SUMdf[art2al_SUMdf$infection_isolate %in% x,], "TOL")$LRT})
-# Brandenburg139 (E. ferrisi)           Brandenburg64 (E. ferrisi)       Brandenburg88 (E. falciformis) 
-# "G=1.2 ,df=3 ,p=0.74265"   "G=4.1 ,df=3 ,p=0.25548" "G=10.3 ,df=3 ,p=0.01601" 
-sapply(levels(SUBsummaryDF77mice$infection_isolate), function(x){
-  testSignifWithinParas(SUBsummaryDF77mice[SUBsummaryDF77mice$infection_isolate %in% x,], "TOL")$LRT})
-# consistent
+lapply(MyListSumma, function(xlist){
+  lapply(listPar, function(xpar){
+    testSignifWithinParas(xlist[xlist$infection_isolate %in% xpar,], "TOL")$LRT})
+}) # consistent: only 88
 
 ######### STEP 3. If mouse significant, post-hoc test
 
 ### Res: Brandenburg64 (E. ferrisi) & Brandenburg88 (E. falciformis)
 library(emmeans)
-lapply(c("Brandenburg64 (E. ferrisi)", "Brandenburg88 (E. falciformis)"), function(x){
-  lsmeans(glm.nb(max.OPG ~ Mouse_genotype, 
-                      data = art2al_SUMdf[art2al_SUMdf$infection_isolate %in% x,]),
-               pairwise ~ Mouse_genotype, adjust = "tukey")
+
+lapply(MyListSumma, function(xlist){
+  lapply(listPar[c(2,3)], function(xPar){
+    lsmeans(glm.nb(max.OPG ~ Mouse_genotype, 
+                   data = xlist[xlist$infection_isolate %in% xPar,]),
+            pairwise ~ Mouse_genotype, adjust = "tukey")
+  })
 })
-lapply(c("Brandenburg64 (E. ferrisi)", "Brandenburg88 (E. falciformis)"), function(x){
-  lsmeans(glm.nb(max.OPG ~ Mouse_genotype, 
-                 data = SUBsummaryDF77mice[SUBsummaryDF77mice$infection_isolate %in% x,]),
-          pairwise ~ Mouse_genotype, adjust = "tukey")
-})
+# E64 - full + consistent conserv1 + consistent conserv2 (+STRA - PWD)
+# SCHUNT - BUSNA   -0.882 0.272 Inf -3.242  0.0065 
+# SCHUNT - PWD     -1.309 0.277 Inf -4.719  <.0001 
+
+# E88 - full PB (zeros...)
+# conserv1: STRA - PWD        1.632 0.384 Inf  4.254  0.0001 + consistent conserv2 + SCHUNT - STRA
 
 ### Imp: Brandenburg64 (E. ferrisi) & Brandenburg88 (E. falciformis)
-lapply(c("Brandenburg64 (E. ferrisi)", "Brandenburg88 (E. falciformis)"), function(x){
-  mod <- lm(relWL ~ Mouse_genotype, data = art2al_SUMdf[art2al_SUMdf$infection_isolate %in% x,])
-  lsmeans(mod, pairwise ~ Mouse_genotype, adjust = "tukey")
+lapply(MyListSumma, function(xlist){
+  lapply(listPar[c(2,3)], function(xPar){
+    lsmeans(lm(relWL ~ Mouse_genotype, 
+                   data = xlist[xlist$infection_isolate %in% xPar,]),
+            pairwise ~ Mouse_genotype, adjust = "tukey")
+  })
 })
-lapply(c("Brandenburg64 (E. ferrisi)", "Brandenburg88 (E. falciformis)"), function(x){
-  mod <- lm(relWL ~ Mouse_genotype, data = SUBsummaryDF77mice[SUBsummaryDF77mice$infection_isolate %in% x,])
-  lsmeans(mod, pairwise ~ Mouse_genotype, adjust = "tukey")
-})
+# E64 - full - consistent cons 1 - consistent cons 2
+# SCHUNT - PWD    -0.0459 0.0162 52 -2.830  0.0324  
+# STRA - PWD      -0.0579 0.0159 52 -3.632  0.0035 
+
+# E88- full - consistent cons 1 & cons 2 (STRA - PWD only)
+# STRA - BUSNA    -0.1154 0.0319 23 -3.623  0.0073 
+# STRA - PWD      -0.1313 0.0319 23 -4.122  0.0022 
 
 ### Tol: Brandenburg88 (E. falciformis)
-mod88 <- lm(relWL ~ 0 + max.OPG : Mouse_genotype, 
-            data = na.omit(art2al_SUMdf[art2al_SUMdf$infection_isolate %in% "Brandenburg88 (E. falciformis)",]))
-lsmeans(mod88, pairwise ~ max.OPG : Mouse_genotype, adjust = "tukey")
-
-mod88_77 <- lm(relWL ~ 0 + max.OPG : Mouse_genotype, 
-            data = na.omit(SUBsummaryDF77mice[SUBsummaryDF77mice$infection_isolate %in% "Brandenburg88 (E. falciformis)",]))
-lsmeans(mod88_77, pairwise ~ max.OPG : Mouse_genotype, adjust = "tukey") # consistent
+lapply(MyListSumma, function(xlist){
+  mod88 <- lm(relWL ~ 0 + max.OPG : Mouse_genotype, 
+              data = na.omit(xlist[xlist$infection_isolate %in% "Brandenburg88 (E. falciformis)",]))
+  lsmeans(mod88, pairwise ~ max.OPG : Mouse_genotype, adjust = "tukey")
+})
+# E88 nothing full , cons1 & cons2 STRA - PWD
 
 ##########
 ## plot ##
@@ -353,34 +329,25 @@ getNs <- function(proxy, df, groupMus = "Mouse_genotype", groupPar = "infection_
 ## Resistance
 # plot marginal effects of interaction terms by isolates & strains
 posx.2 <- c(0.8+c(0,1/8,2/8,3/8),1.8+c(0,1/8,2/8,3/8),2.8+c(0,1/8,2/8,3/8))
-get_plotR_STRAINS <- function(dataframe){
+get_plotR <- function(dataframe){
   plot_model(testSignif(dataframe, "RES")$modfull,
              type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
     scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
                        name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
-    scale_y_continuous("(predicted) maximum oocysts per gram of feces (x10e6)", 
-                       breaks = seq(0, 3500000, 500000),
-                       labels = seq(0, 3500000, 500000)/1000000)+
-    ggtitle("Maximum parasite load \n(mean and 95%CI)") +
+    scale_y_continuous("(predicted) maximum million oocysts per gram of feces", 
+                       breaks = seq(0, 5e6, 0.5e6),
+                       labels = as.character(seq(0, 5e6, 0.5e6)/1e6))+
+    ggtitle("Maximum parasite load = (inverse of) resistance \n(mean and 95%CI)") +
     xlab("Eimeria isolate") +
     theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13)) +
-    geom_text(aes(x=posx.2,y=120000,label=getNs("max.OPG", dataframe)),vjust=0)
+    geom_text(aes(x=posx.2,y=0,label=getNs("max.OPG", dataframe)),vjust=0)
 } 
 
-plotR_STRAINS <- get_plotR_STRAINS(art2al_SUMdf)
-plotR_STRAINS
-plotR_STRAINS_77mice <- get_plotR_STRAINS(SUBsummaryDF77mice)
-plotR_STRAINS_77mice
+plotResList <- lapply(MyListSumma, function(x) get_plotR(x))
 
 ############
 ## Impact ##
-
-## NB: art2al_SUMdf$impact <- art2al_SUMdf$relWL + 0.01
-art2al_SUMdf %>%
-  group_by(Mouse_subspecies, Eimeria_species) %>% 
-  summarise(meanImp = mean(impact, na.rm = T))
-
-get_plotI_STRAINS <- function(dataframe){
+get_plotI <- function(dataframe){
   plot_model(testSignif(dataframe, "IMP")$modfull,
              type = "int",dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
     scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
@@ -393,38 +360,15 @@ get_plotI_STRAINS <- function(dataframe){
     geom_text(aes(x=posx.2,y=0,label=getNs("relWL", dataframe)),vjust=0)
 }
 
-plotI_STRAINS  <- get_plotI_STRAINS(art2al_SUMdf)
-plotI_STRAINS
-plotI_STRAINS_77mice <- get_plotI_STRAINS(SUBsummaryDF77mice)
-plotI_STRAINS_77mice
-
-# Fig 3.
-Fig3 <- cowplot::plot_grid(plotR_STRAINS + theme(legend.position = "none"),
-                           plotI_STRAINS + theme(legend.position = "none"),
-                           plotR_STRAINS,
-                           labels=c("A", "B", "C"), label_size = 20)
-
-Fig3
-pdf(file = "../figures/Fig3.pdf",
-    width = 9, height = 9)
-Fig3
-dev.off()
-
-### SUB df
-pdf(file = "../figures/FigSTRAINS_77mice.pdf",
-    width = 9, height = 9)
-cowplot::plot_grid(
-  plotR_STRAINS_77mice + theme(legend.position = "none"),
-  plotI_STRAINS_77mice + theme(legend.position = "none"),
-  plotR_STRAINS_77mice,
-  labels=c("A", "B", "C"), label_size = 20)
-dev.off()
+plotImpList <- lapply(MyListSumma, function(x) get_plotI(x))
 
 ### Tolerance
-
-makeTolPlot <- function(mypredTolSlopes, mydata){
+get_plotT <- function(mypredTolSlopes, mydata){
   # make line up to 5e6 OPG for plot
   pts <- mypredTolSlopes
+  names(pts) <- "name"
+  pts <- data.frame(pts)
+  colnames(pts) <- gsub("name.", "", colnames(pts))
   pts$predicted <- pts$predicted*5
   pts$relWL_OPGnull <- 0
   names(pts)[names(pts) %in% c("predicted")] <- "relWL_5MOPG"
@@ -440,48 +384,110 @@ makeTolPlot <- function(mypredTolSlopes, mydata){
     geom_line(aes(group = group)) +
     facet_grid(.~infection_isolate) +
     scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
-                       name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +  
-    scale_x_continuous("maximum oocysts per gram of feces (x10e6)", 
+                       name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
+    scale_x_continuous("maximum million oocysts per gram of feces",
                        breaks = seq(0, 5000000, 1000000),
                        labels = seq(0, 5000000, 1000000)/1000000) +
     scale_y_continuous(name = "maximum weight loss compared to day of infection",
-                       breaks = seq(0,0.3, 0.05), 
+                       breaks = seq(0,0.3, 0.05),
                        labels = scales::percent_format(accuracy = 5L)) +
     geom_point(data = mydata, size = 4, pch = 1)+
     coord_cartesian(ylim=c(0, 0.30)) +
-    theme(legend.position = "top")
+    theme(legend.position = "top") +
+    ggtitle("Tolerance \n(slope of B (max weight loss) on A (max parasite load), per genotype)")
 }
 
-T1 <- makeTolPlot(predTolSlopes, art2al_SUMdf)
-pdf(file = "../figures/Fig4.pdf",
-    width = 12, height = 6)
-T1
-dev.off()
+plotTolList <- list(full = get_plotT(predTolList["full"], art2SummaryDF),
+                    cons1 = get_plotT(predTolList["cons1"], art2SummaryDF_conservative1),
+                    cons2 = get_plotT(predTolList["cons2"], art2SummaryDF_conservative2))
 
-T2 <- makeTolPlot(predTolSlopes77, SUBsummaryDF77mice)
-pdf(file = "../figures/Figtolslopes77.pdf",
-    width = 12, height = 6)
-T2
-dev.off()
+# Fig 3.
+getFigRIT <- function(which){
+  cowplot::plot_grid(plotResList[[which]] + theme(legend.position = "none"),
+                     plotImpList[[which]] + theme(legend.position = "none"),
+                     plotTolList[[which]]+ theme(legend.position = "none"),
+                     labels=c("A", "B", "C"), label_size = 20)
+}
 
-#### Final: Res-Tol plot to illustrate
+listPlotsRIT <- lapply(c("full", "cons1", "cons2"), getFigRIT)
+listPlotsRIT[1]
+listPlotsRIT[2]
+listPlotsRIT[3]
 
-# 12 groups
-names(predRes)[names(predRes) %in% c("predicted", "conf.low", "std.error", "conf.high")] <- 
-  paste(names(predRes)[names(predRes) %in% c("predicted", "conf.low",  "std.error", "conf.high")], "Res", sep = "_")
-names(predTolSlopes)[names(predTolSlopes) %in% c("predicted", "conf.low",  "std.error", "conf.high")] <- 
-  paste(names(predTolSlopes)[names(predTolSlopes) %in% c("predicted", "conf.low",  "std.error", "conf.high")], "Tol", sep = "_")
 
-finalplotDF <- merge(predRes, predTolSlopes)
-finalplot <- ggplot(finalplotDF, aes(x = predicted_Res, y = predicted_Tol)) +
-  geom_point( aes(col = Mouse_genotype, pch = infection_isolate), size = 5)+
-  scale_fill_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
-                     name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
-  geom_smooth(method = "lm", se = F, aes(group = infection_isolate, linetype = infection_isolate)) +
-  scale_color_manual(values = as.character(levels(forMap$color)))  +
-  scale_x_continuous("(predicted) maximum oocysts per gram of feces (x10e6)", 
-                     breaks = seq(0, 3500000, 500000),
-                     labels = seq(0, 3500000, 500000)/1000000)+
-  scale_y_continuous("% weight loss by million OPG shed", labels = scales::percent_format(accuracy = 5L))
-finalplot
+Fig3 <- listPlotsRIT[[1]]
+Fig3
+# pdf(file = "../figures/Fig3.pdf",
+#     width = 9, height = 9)
+# Fig3
+# dev.off()
+
+#### Final: Res-Tol plots
+getMergeRT <- function(x, y){
+  names(x) <- "name"
+  x <- data.frame(x)
+  colnames(x) <- gsub("name.", "", colnames(x))
+  names(x)[names(x) %in% c("predicted", "conf.low",  "std.error", "conf.high")] <- 
+     paste(names(x)[names(x) %in% c("predicted", "conf.low",  "std.error", "conf.high")], "Res", sep = "_")
+    names(y) <- "name"
+  y <- data.frame(y)
+  colnames(y) <- gsub("name.", "", colnames(y))
+  names(y)[names(y) %in% c("predicted", "conf.low",  "std.error", "conf.high")] <- 
+    paste(names(y)[names(y) %in% c("predicted", "conf.low",  "std.error", "conf.high")], "Tol", sep = "_")
   
+  merge(x, y)
+}
+
+finalplotDF_full <- getMergeRT(predResList["full"], predTolList["full"])
+finalplotDF_cons1 <- getMergeRT(predResList["cons1"], predTolList["cons1"])
+finalplotDF_cons2 <- getMergeRT(predResList["cons2"], predTolList["cons2"])
+
+list_finalplotDf <- list(finalplotDF_full = finalplotDF_full, 
+                         finalplotDF_cons1 = finalplotDF_cons1,
+                         finalplotDF_cons2 = finalplotDF_cons2)
+
+## test correlations
+lapply(list_finalplotDf, function(df){
+  lapply(listPar, function(x){
+    cor.test(df[df$infection_isolate %in% x, "predicted_Res"], 
+             df[df$infection_isolate %in% x, "predicted_Tol"], 
+             method="spearman")})
+})
+
+# Plot
+getPlot <- function(df){
+  finalplotDF_Efal <- df[grep("falciformis", df$group),]
+  finalplotDF_Efer <- df[grep("ferrisi", df$group),]
+  
+  finalplot_Efer <- ggplot(finalplotDF_Efer, aes(x = predicted_Res, y = predicted_Tol)) +
+    geom_errorbar(aes(ymin = conf.low_Tol, ymax = conf.high_Tol), color = "grey") +
+    geom_errorbarh(aes(xmin = conf.low_Res, xmax = conf.high_Res), color = "grey") +
+    geom_point(aes(col = Mouse_genotype, pch = infection_isolate), size = 7)+
+    scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
+                       name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
+    scale_x_continuous("(predicted) maximum million oocysts per gram of feces",
+                       breaks = seq(0, 3500000, 500000),
+                       labels = seq(0, 3500000, 500000)/1000000)+
+    scale_y_continuous("% weight loss by million OPG shed", labels = scales::percent_format(accuracy = 5L))
+
+  finalplot_Efal <- ggplot(finalplotDF_Efal, aes(x = predicted_Res, y = predicted_Tol)) +
+    geom_errorbar(aes(ymin = conf.low_Tol, ymax = conf.high_Tol), color = "grey") +
+    geom_errorbarh(aes(xmin = conf.low_Res, xmax = conf.high_Res), color = "grey") +
+    geom_point(aes(col = Mouse_genotype, pch = infection_isolate), size = 7)+
+    scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
+                       name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
+    scale_x_continuous("(predicted) maximum million oocysts per gram of feces",
+                       breaks = seq(0, 3500000, 500000),
+                       labels = seq(0, 3500000, 500000)/1000000)+
+    scale_y_continuous("% weight loss by million OPG shed", labels = scales::percent_format(accuracy = 5L))
+  return(list(finalplot_Efer = finalplot_Efer, finalplot_Efal = finalplot_Efal))
+}
+
+listPlots <- lapply(list_finalplotDf, getPlot)
+listPlots$finalplotDF_full$finalplot_Efer
+listPlots$finalplotDF_cons1$finalplot_Efer
+listPlots$finalplotDF_cons2$finalplot_Efer
+listPlots$finalplotDF_full$finalplot_Efal # SCHUNT and BUSNA change places when change DF
+listPlots$finalplotDF_cons1$finalplot_Efal
+listPlots$finalplotDF_cons2$finalplot_Efal
+

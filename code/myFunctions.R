@@ -41,7 +41,7 @@ makeSummaryTable <- function(df){
       dplyr::slice(which.min(weight)) %>%
       dplyr::select(EH_ID, weight, relWL, HI, startingWeight, ageAtInfection, Sex,
                     Mouse_genotype, Eimeria_species, Mouse_subspecies,
-                    infection_isolate, Exp_ID, dpi))
+                    infection_isolate, Exp_ID, Batch, dpi))
   # time to min host weight loss peak
   names(X)[names(X) %in% "dpi"] = "dpi_minWeight"
   names(X)[names(X) %in% "weight"] = "minweight"
@@ -115,27 +115,18 @@ getMatrixPostHoc <- function(postHoc){
   return(mat)
 }
 
-# Define function to be used to test, get the log lik and aic
-tryDistrib <- function(x, distrib){
-  # deals with fitdistr error:
-  fit <- tryCatch(MASS::fitdistr(x, distrib), error=function(err) "fit failed")
-  return(list(fit = fit,
-              loglik = tryCatch(fit$loglik, error=function(err) "no loglik computed"), 
-              AIC = tryCatch(fit$aic, error=function(err) "no aic computed")))
-}
-
-findGoodDist <- function(x, distribs, distribs2){
-  l =lapply(distribs, function(i) tryDistrib(x, i))
-  names(l) <- distribs
-  print(l)
-  listDistr <- lapply(distribs2, function(i) fitdistrplus::fitdist(x,i))
+findGoodDist <- function(x, distribs){ 
+  fits = lapply(distribs, function(i){
+    fitdistrplus::fitdist(data = x, distr = i)})
+  names(fits) = distribs
   par(mfrow=c(2,2))
-  denscomp(listDistr, legendtext=distribs2)
-  cdfcomp(listDistr, legendtext=distribs2)
-  qqcomp(listDistr, legendtext=distribs2)
-  ppcomp(listDistr, legendtext=distribs2)
+  denscomp(fits, addlegend = T, legendtext=distribs)
+  cdfcomp(fits, addlegend = T, legendtext=distribs)
+  qqcomp(fits, addlegend = T, legendtext=distribs)
+  ppcomp(fits, addlegend = T, legendtext=distribs)
   par(mfrow=c(1,1))
-}
+  return(list(fits = fits, aic = lapply(fits, function(x) x$aic), loglik = lapply(fits, function(x) x$loglik)))
+} 
 
 # calculate weightloss
 calculateWeightLoss <- function(x, startingDay = 0){
