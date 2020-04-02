@@ -42,9 +42,9 @@ map <- ggmap(area) +
   theme_bw() +
   theme(legend.position = 'none', axis.ticks=element_blank())
 map 
-# pdf(file = "../figures/Fig1.pdf", width = 8, height = 8)
-# map
-# dev.off()
+pdf(file = "../figures/Fig1_temp.pdf", width = 8, height = 8)
+map
+dev.off()
 
 ###### what is the overall peak day for each parasite isolate? ######
 aggregate(art2SummaryDF$dpi_max.OPG,
@@ -103,8 +103,9 @@ F2.1 <- ggplot(forplot, aes(dpi, mean, group = infection_isolate, col = infectio
   geom_point(size = 3) +
   geom_line() +
   geom_errorbar(aes(ymin = lower.ci, ymax = upper.ci), width = .2)+
-  ylab("OPG (million)") +
+  ylab("million oocysts per gram of feces") +
   scale_x_continuous(breaks = 0:11, name = "days post infection") +
+  scale_color_manual(values = c("darkgreen", "lightgreen", "orange"))+
   theme(legend.position = c(0.25, 0.8)) +
   labs(color = "Eimeria isolate") 
 
@@ -124,15 +125,16 @@ F2.2 <- ggplot(forplot2, aes(dpi, mean, group = infection_isolate,
   geom_errorbar(aes(ymin = lower.ci, ymax = upper.ci), width = .2)+
   ylab("relative weight compared to day 0 (%)") +
   scale_x_continuous(breaks = 0:11, name = "days post infection") +
+  scale_color_manual(values = c("darkgreen", "lightgreen", "orange"))+
   theme(legend.position = c(0.25, 0.2)) +
   labs(color = "Eimeria isolate") 
 
 Fig2 <- cowplot::plot_grid(F2.1, F2.2,
-                  labels=c("A", "B"), label_size = 20)
-  
-# pdf(file = "../figures/Fig2.pdf", width = 10, height = 5)
+                           labels=c("A", "B"), label_size = 20)
+
+pdf(file = "../figures/Fig2_temp.pdf", width = 10, height = 5)
 Fig2
-# dev.off()
+dev.off()
 
 ## Correlation sum of oocysts / peak oocysts
 ggplot(art2SummaryDF, aes(sumoocysts.per.tube, max.oocysts.per.tube)) + 
@@ -162,6 +164,8 @@ homemadeGtest <- function(full, base){
   chisqvalue <- stats::qchisq(p = pvalue, df=dDF)
   return(paste0("G=",round(2*dLL, 1), " ,df=", dDF, " ,p=", signif(pvalue, digits=2)))
 }
+## NB. lrtest from pckage lmtest shows similar results ^^ 
+## I'm reinventing the wheel again
 
 ## LRT significance for each factor
 myLRTsignificanceFactors <- function(modFull, modPar, modMouse, modInt){
@@ -177,6 +181,11 @@ testSignif <- function(dataframe, which){
     modPara <- glm.nb(max.OPG ~ Mouse_genotype, data = dataframe)
     modMous <- glm.nb(max.OPG ~ infection_isolate, data = dataframe)
     modinter <- glm.nb(max.OPG ~ infection_isolate+Mouse_genotype, data = dataframe)
+  } else if (which == "RES_ZI") { # for zero inflated
+    modFULL <- zeroinfl(max.OPG ~ infection_isolate*Mouse_genotype, data = dataframe, dist = "negbin")
+    modPara <- zeroinfl(max.OPG ~ Mouse_genotype, data = dataframe, dist = "negbin")
+    modMous <- zeroinfl(max.OPG ~ infection_isolate, data = dataframe, dist = "negbin")
+    modinter <- zeroinfl(max.OPG ~ infection_isolate+Mouse_genotype, data = dataframe, dist = "negbin")
   } else if (which == "IMP"){
     modFULL <- lm(relWL~infection_isolate*Mouse_genotype, data = dataframe)
     modPara <- lm(relWL~Mouse_genotype, data = dataframe)
@@ -196,6 +205,9 @@ testSignifWithinParas <- function(dataframe, which){
   if(which == "RES"){
     modFULL <- glm.nb(max.OPG ~ Mouse_genotype, data = dataframe)
     mod0 <- glm.nb(max.OPG ~ 1, data = dataframe)
+  } else if (which == "RES_ZI"){
+    modFULL <- zeroinfl(max.OPG ~ Mouse_genotype, data = dataframe, dist = "negbin")
+    mod0 <- zeroinfl(max.OPG ~ 1, data = dataframe, dist = "negbin")
   } else if (which == "IMP"){
     modFULL <- lm(relWL ~ Mouse_genotype, data = dataframe)
     mod0 <- lm(relWL ~ 1, data = dataframe)
@@ -247,7 +259,7 @@ getPredTol <- function(x){
 
 predTolList <- lapply(MyListSumma, getPredTol)
 
-######### STEP 2. If parasites significant, model within this infection group
+######### STEP 2. Model within each infection group
 listPar <- list("Brandenburg139 (E. ferrisi)","Brandenburg64 (E. ferrisi)", "Brandenburg88 (E. falciformis)")
 names(listPar) <- c("Brandenburg139", "Brandenburg64", "Brandenburg88")
 
@@ -256,7 +268,37 @@ lapply(MyListSumma, function(xlist){
   lapply(listPar, function(xpar){
     testSignifWithinParas(xlist[xlist$infection_isolate %in% xpar,], "RES")$LRT})
 }) # consistent. 64 and 88
+
+warnings()
+
+test <- art2SummaryDF[art2SummaryDF$Eimeria_species %in% "E.falciformis",]
+test <- art2SummaryDF
+test <- art2SummaryDF[art2SummaryDF$max.OPG!=0,]
+# test <- test[test$max.OPG !=0,]
+modFULL <- glm.nb(max.OPG ~ Mouse_genotype, data = test)
+mod0 <- glm.nb(max.OPG ~ 1, data = test)
+
+art2SummaryDF[art2SummaryDF$max.OPG == 0, ]
   
+
+
+library(pscl)
+modFULL1 <- zeroinfl(max.OPG ~ Mouse_genotype, data = test, dist = "negbin")
+# modFULL #EM=TRUE
+mod01 <- zeroinfl(max.OPG ~ 1, data = test, dist = "negbin")
+# mod0
+
+
+library(lmtest)
+homemadeGtest(modFULL, mod0)
+lrtest(modFULL, mod0)
+
+homemadeGtest(modFULL1, mod01)
+lrtest(modFULL1, mod01)
+
+modFULL
+modFULL1
+
 ### Imp
 lapply(MyListSumma, function(xlist){
   lapply(listPar, function(xpar){
@@ -292,7 +334,7 @@ lapply(MyListSumma, function(xlist){
 lapply(MyListSumma, function(xlist){
   lapply(listPar[c(2,3)], function(xPar){
     lsmeans(lm(relWL ~ Mouse_genotype, 
-                   data = xlist[xlist$infection_isolate %in% xPar,]),
+               data = xlist[xlist$infection_isolate %in% xPar,]),
             pairwise ~ Mouse_genotype, adjust = "tukey")
   })
 })
@@ -403,10 +445,16 @@ plotTolList <- list(full = get_plotT(predTolList["full"], art2SummaryDF),
 
 # Fig 3.
 getFigRIT <- function(which){
-  cowplot::plot_grid(plotResList[[which]] + theme(legend.position = "none"),
-                     plotImpList[[which]] + theme(legend.position = "none"),
-                     plotTolList[[which]]+ theme(legend.position = "none"),
-                     labels=c("A", "B", "C"), label_size = 20)
+  # cowplot::plot_grid(plotResList[[which]] + theme(legend.position = "none"),
+  #                    plotImpList[[which]] + theme(legend.position = "none"),
+  #                    plotTolList[[which]]+ theme(legend.position = "none"),
+  #                    labels=c("A", "B", "C"), label_size = 20,nrow = 2,
+  #                    rel_widths = c(1, 1, 2))
+  cowplot::ggdraw() +
+    draw_plot(plotResList[[which]] + theme(legend.position = "none"), 0, .5, .49, .49) +
+    draw_plot(plotImpList[[which]] + theme(legend.position = "none"), .5, .5, .49, .49) +
+    draw_plot(plotTolList[[which]]+ theme(legend.position = "none"), 0, 0, .7, .49) +
+    draw_plot_label(c("A", "B", "C"), c(.01, .51, .01), c(1, 1, .5), size = 15)
 }
 
 listPlotsRIT <- lapply(c("full", "cons1", "cons2"), getFigRIT)
@@ -414,13 +462,12 @@ listPlotsRIT[1]
 listPlotsRIT[2]
 listPlotsRIT[3]
 
-
 Fig3 <- listPlotsRIT[[1]]
 Fig3
-# pdf(file = "../figures/Fig3.pdf",
-#     width = 9, height = 9)
-# Fig3
-# dev.off()
+pdf(file = "../figures/Fig3_temp.pdf",
+    width = 10, height = 10)
+Fig3
+dev.off()
 
 #### Final: Res-Tol plots
 getMergeRT <- function(x, y){
@@ -428,8 +475,8 @@ getMergeRT <- function(x, y){
   x <- data.frame(x)
   colnames(x) <- gsub("name.", "", colnames(x))
   names(x)[names(x) %in% c("predicted", "conf.low",  "std.error", "conf.high")] <- 
-     paste(names(x)[names(x) %in% c("predicted", "conf.low",  "std.error", "conf.high")], "Res", sep = "_")
-    names(y) <- "name"
+    paste(names(x)[names(x) %in% c("predicted", "conf.low",  "std.error", "conf.high")], "Res", sep = "_")
+  names(y) <- "name"
   y <- data.frame(y)
   colnames(y) <- gsub("name.", "", colnames(y))
   names(y)[names(y) %in% c("predicted", "conf.low",  "std.error", "conf.high")] <- 
@@ -469,7 +516,7 @@ getPlot <- function(df){
                        breaks = seq(0, 3500000, 500000),
                        labels = seq(0, 3500000, 500000)/1000000)+
     scale_y_continuous("% weight loss by million OPG shed", labels = scales::percent_format(accuracy = 5L))
-
+  
   finalplot_Efal <- ggplot(finalplotDF_Efal, aes(x = predicted_Res, y = predicted_Tol)) +
     geom_errorbar(aes(ymin = conf.low_Tol, ymax = conf.high_Tol), color = "grey") +
     geom_errorbarh(aes(xmin = conf.low_Res, xmax = conf.high_Res), color = "grey") +
@@ -490,4 +537,13 @@ listPlots$finalplotDF_cons2$finalplot_Efer
 listPlots$finalplotDF_full$finalplot_Efal # SCHUNT and BUSNA change places when change DF
 listPlots$finalplotDF_cons1$finalplot_Efal
 listPlots$finalplotDF_cons2$finalplot_Efal
+  
+pdf(file = "../figures/Fig4_Efer_temp.pdf",
+    width = 10, height = 7)
+listPlots$finalplotDF_full$finalplot_Efer
+dev.off()
 
+pdf(file = "../figures/Fig5_Efal_temp.pdf",
+    width = 10, height = 7)
+listPlots$finalplotDF_full$finalplot_Efal
+dev.off()

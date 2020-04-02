@@ -93,7 +93,7 @@ DSart2_conservative1 <- DSart2[!DSart2$EH_ID %in% miceProblematicNoOo,] # 108 mi
 art2SummaryDF_conservative1 <- makeSummaryTable(DSart2_conservative1) # 99 mice
 
 # conservative 2 = remove mice with contamination or anthelminthic
-DSart2_conservative2 <- DSart2_conservative1[DSart2_conservative1$anth == F & !DSart2_conservative1$EH_ID %in% conta$EH_ID,]
-art2SummaryDF_conservative2 <- makeSummaryTable(DSart2_conservative2) # 68 mice
+DSart2_conservative2 <- DSart2[DSart2$anth == F & !DSart2$EH_ID %in% conta$EH_ID,]
+art2SummaryDF_conservative2 <- makeSummaryTable(DSart2_conservative2) # 77 mice
 
 ### The end ###
