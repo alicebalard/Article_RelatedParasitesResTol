@@ -8,8 +8,10 @@ DSart2 <- DF_all[grep("F0", DF_all$Mouse_genotype),]
 DSart2 <- dropLevelsAllFactorsDF(DSart2)
 
 # rename batches
-DSart2$Batch <- DSart2$Exp_ID
-levels(DSart2$Batch) <- c("B1","B2","B3","B4","B5","B6")
+DSart2$Batch[DSart2$Exp_ID %in% "Exp_003"] <- "B1"
+DSart2$Batch[DSart2$Exp_ID %in% "Exp_004"] <- "B2"
+DSart2$Batch[grep("Exp_005_1", DSart2$Exp_ID)] <- "B3"
+DSart2$Batch[grep("Exp_005_2", DSart2$Exp_ID)] <- "B4"
 
 # rename (shorter) mouse strains
 levels(DSart2$Mouse_genotype) <- c("SCHUNT", "STRA", "BUSNA", "PWD")

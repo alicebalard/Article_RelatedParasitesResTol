@@ -12,16 +12,19 @@ source("dataPreparationArticle2.R")
 library(cowplot)
 library(ggplot2)
 library(dplyr)
+library(lmtest)
+library(pscl)
 
 ## Different datasets as follow:
 
 # FULL = DSart2 / art2SummaryDF
-
+nrow(art2SummaryDF)
 # conservative 1 = remove mice without oocysts at peak day
 # DSart2_conservative1 ; art2SummaryDF_conservative1 # 99 mice
-
+nrow(art2SummaryDF_conservative1)
 # conservative 2 = remove mice with contamination or anthelminthic
-# DSart2_conservative2 ; art2SummaryDF_conservative2 # 68 mice
+# DSart2_conservative2 ; art2SummaryDF_conservative2 # 77 mice
+nrow(art2SummaryDF_conservative2)
 
 ###### Map of our samples FIGURE 1 (with design) ######
 hmhzline <- read.csv("../data/HMHZ.csv")
@@ -68,13 +71,13 @@ test$group <- paste(resume$Var2,resume$Var3)
 test$freq <- resume$Freq
 test <- test[order(test$Batch),]
 test <- reshape(test, idvar = "Batch", v.names = "freq", timevar = "group", direction="wide")
-# write.csv(test,
-#           "../figures/TableAllBatches.csv", row.names = F) # NB done for FULL DS
+write.csv(test,
+           "../figures/TableAllBatches.csv", row.names = F) # NB done for FULL DS
 
-## Age of mice
+  ## Age of mice
 range(as.numeric(art2SummaryDF$ageAtInfection))
 
-###### what is the overall prepatent period for each parasite isolate? ######
+  ###### what is the overall prepatent period for each parasite isolate? ######
 d <- as.data.frame(
   DSart2[!is.na(DSart2$OPG) & DSart2$OPG > 0,] %>% 
     dplyr::group_by(EH_ID) %>%
@@ -231,6 +234,11 @@ MyListSumma <- list(full = art2SummaryDF, cons1 = art2SummaryDF_conservative1,
 ######### STEP 1. Full model to see significance of all variables
 
 ### Res
+
+## zero inflated or not?
+#lapply(MyListSumma, function(x){testSignif(x,"RES")})
+#lapply(MyListSumma, function(x){testSignif(x,"RES_ZI")})
+
 lapply(MyListSumma, function(x){testSignif(x,"RES")$LRT}) # consistent
 # Predicted values:
 getPred <- function(x, which){
@@ -238,7 +246,7 @@ getPred <- function(x, which){
   pred <- (data.frame(pred))
   names(pred)[names(pred) %in% c("x", "group")] <- c("Mouse_genotype", "infection_isolate")
   return(pred)}
-predResList <- lapply(MyListSumma, function(x) getPred(x, "RES"))
+  predResList <- lapply(MyListSumma, function(x) getPred(x, "RES"))
 
 ### Imp
 lapply(MyListSumma, function(x){testSignif(x,"IMP")$LRT}) # consistent
@@ -259,6 +267,11 @@ getPredTol <- function(x){
 
 predTolList <- lapply(MyListSumma, getPredTol)
 
+# make a pretty table to read tolerance values
+test <- predTolList$full
+test$col2 <- paste0(round(test$predicted, 2), " [95%CI: ",round(test$conf.low, 2), "-", round(test$conf.high, 2), "]")
+write.csv(test, "../figures/TableTol.csv", row.names = F)
+
 ######### STEP 2. Model within each infection group
 listPar <- list("Brandenburg139 (E. ferrisi)","Brandenburg64 (E. ferrisi)", "Brandenburg88 (E. falciformis)")
 names(listPar) <- c("Brandenburg139", "Brandenburg64", "Brandenburg88")
@@ -267,37 +280,18 @@ names(listPar) <- c("Brandenburg139", "Brandenburg64", "Brandenburg88")
 lapply(MyListSumma, function(xlist){
   lapply(listPar, function(xpar){
     testSignifWithinParas(xlist[xlist$infection_isolate %in% xpar,], "RES")$LRT})
-}) # consistent. 64 and 88
+})  # consistent. 64 different. bad fit for E88, likely because zeros
 
-warnings()
+reswithinpar <- lapply(MyListSumma, function(xlist){
+  lapply(listPar, function(xpar){
+    testSignifWithinParas(xlist[xlist$infection_isolate %in% xpar,], "RES")})
+})
+## E.falciformis (4 individuals with zeros)
+ZI88 <- testSignifWithinParas(art2SummaryDF[art2SummaryDF$infection_isolate %in% listPar[3],], "RES_ZI")
 
-test <- art2SummaryDF[art2SummaryDF$Eimeria_species %in% "E.falciformis",]
-test <- art2SummaryDF
-test <- art2SummaryDF[art2SummaryDF$max.OPG!=0,]
-# test <- test[test$max.OPG !=0,]
-modFULL <- glm.nb(max.OPG ~ Mouse_genotype, data = test)
-mod0 <- glm.nb(max.OPG ~ 1, data = test)
-
-art2SummaryDF[art2SummaryDF$max.OPG == 0, ]
-  
-
-
-library(pscl)
-modFULL1 <- zeroinfl(max.OPG ~ Mouse_genotype, data = test, dist = "negbin")
-# modFULL #EM=TRUE
-mod01 <- zeroinfl(max.OPG ~ 1, data = test, dist = "negbin")
-# mod0
-
-
-library(lmtest)
-homemadeGtest(modFULL, mod0)
-lrtest(modFULL, mod0)
-
-homemadeGtest(modFULL1, mod01)
-lrtest(modFULL1, mod01)
-
-modFULL
-modFULL1
+# best fit? zero inflated far better
+lrtest(reswithinpar$full$Brandenburg88$modfull, ZI88$modfull)
+ZI88$LRT #G=16.3 ,df=6 ,p=0.012
 
 ### Imp
 lapply(MyListSumma, function(xlist){
@@ -317,18 +311,25 @@ lapply(MyListSumma, function(xlist){
 library(emmeans)
 
 lapply(MyListSumma, function(xlist){
-  lapply(listPar[c(2,3)], function(xPar){
+  lapply(listPar, function(xPar){
     lsmeans(glm.nb(max.OPG ~ Mouse_genotype, 
                    data = xlist[xlist$infection_isolate %in% xPar,]),
             pairwise ~ Mouse_genotype, adjust = "tukey")
   })
 })
 # E64 - full + consistent conserv1 + consistent conserv2 (+STRA - PWD)
+# contrast       estimate        SE  df z.ratio   p.value
 # SCHUNT - BUSNA   -0.882 0.272 Inf -3.242  0.0065 
 # SCHUNT - PWD     -1.309 0.277 Inf -4.719  <.0001 
 
 # E88 - full PB (zeros...)
 # conserv1: STRA - PWD        1.632 0.384 Inf  4.254  0.0001 + consistent conserv2 + SCHUNT - STRA
+lsmeans(zeroinfl(max.OPG ~ Mouse_genotype, 
+                 data = art2SummaryDF[art2SummaryDF$infection_isolate %in% "Brandenburg88 (E. falciformis)",],
+                 dist = "negbin"),
+        pairwise ~ Mouse_genotype, adjust = "tukey")
+# contrast       estimate     SE  df z.ratio p.value
+# STRA - PWD      1879765 688546 Inf  2.730  0.0321 
 
 ### Imp: Brandenburg64 (E. ferrisi) & Brandenburg88 (E. falciformis)
 lapply(MyListSumma, function(xlist){
@@ -353,6 +354,13 @@ lapply(MyListSumma, function(xlist){
   lsmeans(mod88, pairwise ~ max.OPG : Mouse_genotype, adjust = "tukey")
 })
 # E88 nothing full , cons1 & cons2 STRA - PWD
+
+test <- lm(relWL ~ 0 + max.OPG : Mouse_genotype, 
+   data = art2SummaryDF[art2SummaryDF$infection_isolate %in% "Brandenburg88 (E. falciformis)",])
+leastsquare = lsmeans(test, pairwise ~ max.OPG : Mouse_genotype, adjust = "tukey")
+cld(leastsquare[[2]])
+
+lsmeans(test, pairwise ~ Mouse_genotype, adjust = "tukey")
 
 ##########
 ## plot ##
@@ -500,8 +508,19 @@ lapply(list_finalplotDf, function(df){
              df[df$infection_isolate %in% x, "predicted_Tol"], 
              method="spearman")})
 })
-
+  
 # Plot
+
+## function to reverse and log10 resistance axis:
+library("scales")
+reverselog_trans <- function(base = exp(1)) {
+  trans <- function(x) -log(x, base)
+  inv <- function(x) base^(-x)
+  trans_new(paste0("reverselog-", format(base)), trans, inv, 
+            log_breaks(base = base), 
+            domain = c(1e-100, Inf))
+}
+
 getPlot <- function(df){
   finalplotDF_Efal <- df[grep("falciformis", df$group),]
   finalplotDF_Efer <- df[grep("ferrisi", df$group),]
@@ -512,10 +531,12 @@ getPlot <- function(df){
     geom_point(aes(col = Mouse_genotype, pch = infection_isolate), size = 7)+
     scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
                        name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
-    scale_x_continuous("(predicted) maximum million oocysts per gram of feces",
-                       breaks = seq(0, 3500000, 500000),
-                       labels = seq(0, 3500000, 500000)/1000000)+
-    scale_y_continuous("% weight loss by million OPG shed", labels = scales::percent_format(accuracy = 5L))
+    scale_x_continuous(trans=reverselog_trans(10), "RESISTANCE \n(inverse of) maximum OPG") +
+    scale_y_reverse(name = "TOLERANCE \n(inverse of) slope of maximum weight loss on maximum OPG")
+  # scale_x_continuous("(predicted) maximum million oocysts per gram of feces",
+    #                    breaks = seq(0, 3500000, 500000),
+    #                    labels = seq(0, 3500000, 500000)/1000000)+
+    # scale_y_continuous("% weight loss by million OPG shed", labels = scales::percent_format(accuracy = 5L))
   
   finalplot_Efal <- ggplot(finalplotDF_Efal, aes(x = predicted_Res, y = predicted_Tol)) +
     geom_errorbar(aes(ymin = conf.low_Tol, ymax = conf.high_Tol), color = "grey") +
@@ -523,10 +544,12 @@ getPlot <- function(df){
     geom_point(aes(col = Mouse_genotype, pch = infection_isolate), size = 7)+
     scale_color_manual(values = c("blue", "cornflowerblue", "red4", "indianred1"),
                        name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
-    scale_x_continuous("(predicted) maximum million oocysts per gram of feces",
-                       breaks = seq(0, 3500000, 500000),
-                       labels = seq(0, 3500000, 500000)/1000000)+
-    scale_y_continuous("% weight loss by million OPG shed", labels = scales::percent_format(accuracy = 5L))
+    scale_x_continuous(trans=reverselog_trans(10), name = "RESISTANCE \n(inverse of) maximum OPG") +
+    scale_y_reverse(name = "TOLERANCE \n(inverse of) slope on maximum weight loss on maximum OPG")
+    # scale_x_continuous("(predicted) maximum million oocysts per gram of feces",
+    #                    breaks = seq(0, 3500000, 500000),
+    #                    labels = seq(0, 3500000, 500000)/1000000)+
+    # scale_y_continuous("% weight loss by million OPG shed", labels = scales::percent_format(accuracy = 5L))
   return(list(finalplot_Efer = finalplot_Efer, finalplot_Efal = finalplot_Efal))
 }
 
@@ -539,11 +562,12 @@ listPlots$finalplotDF_cons1$finalplot_Efal
 listPlots$finalplotDF_cons2$finalplot_Efal
   
 pdf(file = "../figures/Fig4_Efer_temp.pdf",
-    width = 10, height = 7)
+    width = 8, height = 5)
 listPlots$finalplotDF_full$finalplot_Efer
 dev.off()
 
-pdf(file = "../figures/Fig5_Efal_temp.pdf",
-    width = 10, height = 7)
+  pdf(file = "../figures/Fig5_Efal_temp.pdf",
+    width = 8, height = 5)
 listPlots$finalplotDF_full$finalplot_Efal
 dev.off()
+  
