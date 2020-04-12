@@ -246,9 +246,14 @@ getPred <- function(x, which){
   pred <- (data.frame(pred))
   names(pred)[names(pred) %in% c("x", "group")] <- c("Mouse_genotype", "infection_isolate")
   return(pred)}
-  predResList <- lapply(MyListSumma, function(x) getPred(x, "RES"))
+predResList <- lapply(MyListSumma, function(x) getPred(x, "RES"))
 
-### Imp
+test <- predResList$full
+test$millionOPG <- round(test$predicted/1000000, 2)
+test$CI95 <- paste0("[", round(test$conf.low/1000000, 2), "-",round(test$conf.high/1000000, 2), "]")
+write.csv(test, "../figures/TableRes.csv", row.names = F)
+
+  ### Imp
 lapply(MyListSumma, function(x){testSignif(x,"IMP")$LRT}) # consistent
 # Predicted values:
 predImpList <- lapply(MyListSumma, function(x) getPred(x, "IMP"))
@@ -287,11 +292,20 @@ reswithinpar <- lapply(MyListSumma, function(xlist){
     testSignifWithinParas(xlist[xlist$infection_isolate %in% xpar,], "RES")})
 })
 ## E.falciformis (4 individuals with zeros)
-ZI88 <- testSignifWithinParas(art2SummaryDF[art2SummaryDF$infection_isolate %in% listPar[3],], "RES_ZI")
 
+ZI88 <- testSignifWithinParas(art2SummaryDF[art2SummaryDF$infection_isolate %in% listPar[3],], "RES_ZI")
 # best fit? zero inflated far better
 lrtest(reswithinpar$full$Brandenburg88$modfull, ZI88$modfull)
 ZI88$LRT #G=16.3 ,df=6 ,p=0.012
+ZI88
+
+## conservative
+ZI88_cons2 <- testSignifWithinParas(art2SummaryDF_conservative2[
+  art2SummaryDF_conservative2$infection_isolate %in% listPar[3],], "RES_ZI")
+# best fit? zero inflated far better
+lrtest(reswithinpar$cons2$Brandenburg88$modfull, ZI88_cons2$modfull)
+ZI88_cons2$LRT #G=16.3 ,df=6 ,p=0.012
+  ZI88_cons2 #"G=14.1 ,df=6 ,p=0.028"
 
 ### Imp
 lapply(MyListSumma, function(xlist){
@@ -477,6 +491,11 @@ pdf(file = "../figures/Fig3_temp.pdf",
 Fig3
 dev.off()
 
+pdf(file = "../figures/SupplS2_part2_temp.pdf",
+    width = 10, height = 10)
+listPlotsRIT[[3]]
+dev.off()
+
 #### Final: Res-Tol plots
 getMergeRT <- function(x, y){
   names(x) <- "name"
@@ -566,8 +585,19 @@ pdf(file = "../figures/Fig4_Efer_temp.pdf",
 listPlots$finalplotDF_full$finalplot_Efer
 dev.off()
 
-  pdf(file = "../figures/Fig5_Efal_temp.pdf",
+pdf(file = "../figures/Fig5_Efal_temp.pdf",
     width = 8, height = 5)
 listPlots$finalplotDF_full$finalplot_Efal
+dev.off()
+
+#### Supplementary material
+pdf(file = "../figures/SupplS2_part3_temp.pdf",
+    width = 8, height = 5)
+listPlots$finalplotDF_cons2$finalplot_Efer
+dev.off()
+
+pdf(file = "../figures/SupplS2_part4_temp.pdf",
+    width = 8, height = 5)
+listPlots$finalplotDF_cons2$finalplot_Efal
 dev.off()
   
