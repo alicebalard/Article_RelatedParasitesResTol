@@ -318,7 +318,7 @@ lapply(MyListSumma, function(xlist){
   lapply(listPar, function(xpar){
     testSignifWithinParas(xlist[xlist$infection_isolate %in% xpar,], "TOL")$LRT})
 }) # consistent: only 88
-
+  
 ######### STEP 3. If mouse significant, post-hoc test
 
 ### Res: Brandenburg64 (E. ferrisi) & Brandenburg88 (E. falciformis)
