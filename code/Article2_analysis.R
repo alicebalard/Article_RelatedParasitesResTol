@@ -8,7 +8,7 @@
 # Mouse AA_0139, HI = 0.85
 
 #### Load data and functions within ####
-source("dataPreparationArticle2.R")
+source("dataPreparation_168mice.R")
 library(cowplot)
 library(ggplot2)
 library(dplyr)
@@ -18,12 +18,12 @@ library(pscl)
 ## Different datasets as follow:
 
 # FULL = DSart2 / art2SummaryDF
-nrow(art2SummaryDF)
+nrow(art2SummaryDF) # 168
 # conservative 1 = remove mice without oocysts at peak day
-# DSart2_conservative1 ; art2SummaryDF_conservative1 # 99 mice
+# DSart2_conservative1 ; art2SummaryDF_conservative1 # 158 mice
 nrow(art2SummaryDF_conservative1)
 # conservative 2 = remove mice with contamination or anthelminthic
-# DSart2_conservative2 ; art2SummaryDF_conservative2 # 77 mice
+# DSart2_conservative2 ; art2SummaryDF_conservative2 # 118 mice
 nrow(art2SummaryDF_conservative2)
 
 ###### Map of our samples FIGURE 1 (with design) ######
@@ -72,12 +72,12 @@ test$freq <- resume$Freq
 test <- test[order(test$Batch),]
 test <- reshape(test, idvar = "Batch", v.names = "freq", timevar = "group", direction="wide")
 write.csv(test,
-           "../figures/TableAllBatches.csv", row.names = F) # NB done for FULL DS
+          "../figures/TableAllBatches.csv", row.names = F) # NB done for FULL DS
 
-  ## Age of mice
+## Age of mice
 range(as.numeric(art2SummaryDF$ageAtInfection))
 
-  ###### what is the overall prepatent period for each parasite isolate? ######
+###### what is the overall prepatent period for each parasite isolate? ######
 d <- as.data.frame(
   DSart2[!is.na(DSart2$OPG) & DSart2$OPG > 0,] %>% 
     dplyr::group_by(EH_ID) %>%
@@ -155,9 +155,179 @@ hist(xRes, breaks = 100)
 findGoodDist(x = xRes, distribs = c("norm", "nbinom"))
 ### nbinom for resistance
 
-################################
-##### Statistical analyses #####
-################################
+###########################################
+########## Double test framework ##########
+###########################################
+
+# hyp framework
+dfhyp1 <- data.frame(hypotheses = rep("H1.neg coupling Res-Tol",2),
+                    plot = c("x=OPG, y=relWL", "x=res, y=tol"),
+                    x = c(1,2,3,1,2,3), y = c(3,2,1,3,2,1),
+                    label = c("H1", rep(NA,5)))
+dfhyp2 <- data.frame(hypotheses = rep("H2.pos coupling Res-Tol",2),
+                     plot = c("x=OPG, y=relWL", "x=res, y=tol"),
+                     x = c(1,2,3,1,2,3), y = c(2,2,2,1,2,3),
+                     label = c("H2", rep(NA,5)))
+dfhyp3 <- data.frame(hypotheses = rep("H3.no coupling Res-Tol",2),
+                     plot = c("x=OPG, y=relWL", "x=res, y=tol"),
+                     x = c(1,2,3,1,2,3), y = c(1,2,3,2,2,2),
+                     label = c("H3", rep(NA,5)))
+
+dfhyp <- rbind(dfhyp1, dfhyp2, dfhyp3)
+  
+hypplot <- ggplot(dfhyp, aes(x, y)) +
+  geom_line(aes(col = hypotheses)) +
+  facet_grid(plot~hypotheses) +
+  theme(legend.position = "none")
+
+hypplot1 <- ggplot(dfhyp1, aes(x, y)) +
+  geom_line(col = "red", size =2) +
+  facet_grid(plot~hypotheses) +
+  geom_text(aes(x = 1.5, y= 1.5, label =label), col = "red", size =6) +
+  theme(legend.position = "none", axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+        strip.background = element_blank(), strip.text.x = element_blank(),
+        strip.text.y = element_text(size = 8))
+hypplot2 <- ggplot(dfhyp2, aes(x, y)) +
+  geom_line(col = "green", size =2) +
+  facet_grid(plot~hypotheses) +
+  geom_text(aes(x = 1.5, y= 1.5, label =label), col = "darkgreen", size =6) +
+  theme(legend.position = "none", axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+        strip.background = element_blank(), strip.text.x = element_blank(),
+        strip.text.y = element_text(size = 8))
+hypplot3 <- ggplot(dfhyp3, aes(x, y)) +
+  geom_line(col = "grey", size =2) +
+  facet_grid(plot~hypotheses) +
+  geom_text(aes(x = 2.5, y= 1.5, label =label), col = "darkgrey", size =6) +
+  theme(legend.position = "none", axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+        strip.background = element_blank(), strip.text.x = element_blank(),
+        strip.text.y = element_text(size = 8))
+
+# Predicted values of resistance and tolerance per mouse genotype:
+
+getFullModel <- function(dataframe, which){
+  if (which == "RES"){
+    modFULL <- glm.nb(max.OPG ~ infection_isolate*Mouse_genotype, data = dataframe)
+  } else if (which == "RES_ZI") { # for zero inflated
+    modFULL <- zeroinfl(max.OPG ~ infection_isolate*Mouse_genotype, data = dataframe, dist = "negbin")
+  } else if (which == "IMP"){
+    modFULL <- lm(relWL~infection_isolate*Mouse_genotype, data = dataframe)
+  } else if (which == "TOL"){
+    modFULL <- lm(relWL ~ 0 + max.OPG : (infection_isolate * Mouse_genotype), data = dataframe)
+  }
+  return(modFULL)
+}
+
+getPred <- function(dataframe, which){
+  model = getFullModel(dataframe, which)
+  pred = ggpredict(model, terms = c("Mouse_genotype", "infection_isolate"))
+  pred = (data.frame(pred))
+  names(pred)[names(pred) %in% c("x", "group")] = c("Mouse_genotype", "infection_isolate")
+  return(pred)
+  }
+
+getMergeRT <- function(x, y, z){
+  colnames(x) <- gsub("name.", "", colnames(x))
+  names(x)[names(x) %in% c("predicted", "conf.low",  "std.error", "conf.high")] <-
+    paste(names(x)[names(x) %in% c("predicted", "conf.low",  "std.error", "conf.high")], "OPG", sep = "_")
+  colnames(y) <- gsub("name.", "", colnames(y))
+  names(y)[names(y) %in% c("predicted", "conf.low",  "std.error", "conf.high")] <-
+    paste(names(y)[names(y) %in% c("predicted", "conf.low",  "std.error", "conf.high")], "relWL", sep = "_")
+  colnames(z) <- gsub("name.", "", colnames(z))
+  names(z)[names(z) %in% c("predicted", "conf.low",  "std.error", "conf.high")] <-
+    paste(names(z)[names(z) %in% c("predicted", "conf.low",  "std.error", "conf.high")], "Tol", sep = "_")
+  merge(merge(x, y), z)
+}
+
+predRes <- getPred(art2SummaryDF, "RES")
+predImp <- getPred(art2SummaryDF, "IMP")
+predTol <- getPred(art2SummaryDF, "TOL")
+
+finalplotDF <- getMergeRT(predRes, predImp, predTol)
+finalplotDF$label <- finalplotDF$Mouse_genotype
+levels(finalplotDF$label) <- as.character(c(1:8))
+finalplotDF$Genotype <- paste0(finalplotDF$label, ". ", finalplotDF$Mouse_genotype)
+
+# test correlations:
+listPar <- list("Brandenburg139 (E. ferrisi)","Brandenburg64 (E. ferrisi)", "Brandenburg88 (E. falciformis)")
+finalplotDF$infection_isolate
+
+l1 <- lapply(listPar, function(x){
+  c1 <- cor.test(finalplotDF[finalplotDF$infection_isolate %in% x, "predicted_OPG"], 
+                 finalplotDF[finalplotDF$infection_isolate %in% x, "predicted_relWL"], 
+                 method="pearson")
+  c2 <- cor.test(finalplotDF[finalplotDF$infection_isolate %in% x, "predicted_OPG"], 
+                 finalplotDF[finalplotDF$infection_isolate %in% x, "predicted_relWL"], 
+                 method="spearman")
+  paste0(as.character(c1$method), ":\n", round(c1$estimate, 2), ", p-value=",  signif(c1$p.value, digits=2), "\n",
+         as.character(c2$method), ":\n", round(c2$estimate, 2), ", p-value=",  signif(c2$p.value, digits=2))
+})
+
+addCortext1 <- data.frame(infection_isolate = unlist(listPar),
+                         testcor = unlist(l1))
+
+l2 <- lapply(listPar, function(x){
+  c1 <- cor.test(finalplotDF[finalplotDF$infection_isolate %in% x, "predicted_OPG"], 
+                 finalplotDF[finalplotDF$infection_isolate %in% x, "predicted_Tol"], 
+                 method="pearson")
+  c2 <- cor.test(finalplotDF[finalplotDF$infection_isolate %in% x, "predicted_OPG"], 
+                 finalplotDF[finalplotDF$infection_isolate %in% x, "predicted_Tol"], 
+                 method="spearman")
+  paste0(as.character(c1$method), ":\n", round(c1$estimate, 2), ", p-value=",  signif(c1$p.value, digits=2), "\n",
+         as.character(c2$method), ":\n", round(c2$estimate, 2), ", p-value=",  signif(c2$p.value, digits=2))
+})
+
+addCortext2 <- data.frame(infection_isolate = unlist(listPar),
+                          testcor = unlist(l2))
+
+## Plot raw (WL vs OPG) and res-tol
+library(scales)
+mycolors <- scales::seq_gradient_pal("darkblue", "orangered", "Lab")(seq(0,1,length.out=8))
+
+## Plot1
+P1 <- ggplot(finalplotDF, aes(x=predicted_OPG, y=predicted_relWL)) +
+  geom_errorbarh(aes(xmin = conf.low_OPG, xmax = conf.high_OPG), color = "grey") +
+  geom_errorbar(aes(ymin = conf.low_relWL, ymax = conf.high_relWL), color = "grey") +
+  geom_point(aes(col = Genotype), size = 7)+
+  facet_grid(.~infection_isolate)+
+  geom_text(aes(label=label), col = "white")+
+  scale_color_manual(values = mycolors) +
+  geom_smooth(method = "lm", se = F, col = "black")+
+  geom_text(data = addCortext1, aes(label = testcor, x = 3e6, y = 0.15))
+
+## Plot2
+P2 <- ggplot(finalplotDF, aes(x = predicted_OPG, y = predicted_Tol)) +
+  geom_errorbar(aes(ymin = conf.low_Tol, ymax = conf.high_Tol), color = "grey") +
+  geom_errorbarh(aes(xmin = conf.low_OPG, xmax = conf.high_OPG), color = "grey") +
+  geom_point(aes(col = Genotype), size = 7)+
+  scale_x_reverse(name = "RESISTANCE \n(inverse of) maximum OPG")+
+  scale_y_reverse(name = "TOLERANCE \n(inverse of) slope of maximum weight loss on maximum OPG")+
+  facet_grid(.~infection_isolate)+
+  geom_text(aes(label=label), col = "white")+
+  coord_cartesian(xlim=c(0,2.5e6), ylim=c(0, 0.4))+
+  scale_color_manual(values = mycolors) +
+  geom_smooth(method = "lm", se = F, col = "black") +
+  geom_text(data = addCortext2, aes(label = testcor, x = 1.5e6, y = 0.25))
+                       
+
+bigPlot <- cowplot::ggdraw() +
+  draw_plot(P1, 0, .5, 1, .5) +
+  draw_plot(P2, 0, 0, 1, .5) +
+  draw_plot(hypplot3, 0.19,0.56,.1,.2)+
+  draw_plot(hypplot3, 0.49,0.56,.1,.2)+
+  draw_plot(hypplot1, 0.78,0.56,.1,.2)
+bigPlot
+
+pdf(file = "../figures/bigPlot.pdf",
+    width = 17, height = 12)
+bigPlot
+dev.off()
+
+#########################################
+##### Original statistical analyses #####
+#########################################
 ## LRT test
 homemadeGtest <- function(full, base){
   dLL = logLik(full) - logLik(base)
@@ -253,7 +423,7 @@ test$millionOPG <- round(test$predicted/1000000, 2)
 test$CI95 <- paste0("[", round(test$conf.low/1000000, 2), "-",round(test$conf.high/1000000, 2), "]")
 write.csv(test, "../figures/TableRes.csv", row.names = F)
 
-  ### Imp
+### Imp
 lapply(MyListSumma, function(x){testSignif(x,"IMP")$LRT}) # consistent
 # Predicted values:
 predImpList <- lapply(MyListSumma, function(x) getPred(x, "IMP"))
@@ -305,7 +475,7 @@ ZI88_cons2 <- testSignifWithinParas(art2SummaryDF_conservative2[
 # best fit? zero inflated far better
 lrtest(reswithinpar$cons2$Brandenburg88$modfull, ZI88_cons2$modfull)
 ZI88_cons2$LRT #G=16.3 ,df=6 ,p=0.012
-  ZI88_cons2 #"G=14.1 ,df=6 ,p=0.028"
+ZI88_cons2 #"G=14.1 ,df=6 ,p=0.028"
 
 ### Imp
 lapply(MyListSumma, function(xlist){
@@ -318,13 +488,13 @@ lapply(MyListSumma, function(xlist){
   lapply(listPar, function(xpar){
     testSignifWithinParas(xlist[xlist$infection_isolate %in% xpar,], "TOL")$LRT})
 }) # consistent: only 88
-  
+
 ######### STEP 3. If mouse significant, post-hoc test
 
 ### Res: Brandenburg64 (E. ferrisi) & Brandenburg88 (E. falciformis)
 library(emmeans)
 
-lapply(MyListSumma, function(xlist){
+    lapply(MyListSumma, function(xlist){
   lapply(listPar, function(xPar){
     lsmeans(glm.nb(max.OPG ~ Mouse_genotype, 
                    data = xlist[xlist$infection_isolate %in% xPar,]),
@@ -370,7 +540,7 @@ lapply(MyListSumma, function(xlist){
 # E88 nothing full , cons1 & cons2 STRA - PWD
 
 test <- lm(relWL ~ 0 + max.OPG : Mouse_genotype, 
-   data = art2SummaryDF[art2SummaryDF$infection_isolate %in% "Brandenburg88 (E. falciformis)",])
+           data = art2SummaryDF[art2SummaryDF$infection_isolate %in% "Brandenburg88 (E. falciformis)",])
 leastsquare = lsmeans(test, pairwise ~ max.OPG : Mouse_genotype, adjust = "tukey")
 cld(leastsquare[[2]])
 
@@ -521,13 +691,27 @@ list_finalplotDf <- list(finalplotDF_full = finalplotDF_full,
                          finalplotDF_cons2 = finalplotDF_cons2)
 
 ## test correlations
+  # lm(group_tolerance ~ group_resistance * parasite_isolate)
+
+finalplotDF <- finalplotDF_full
+
+modFULL_cor <- lm(predicted_Tol~predicted_Res*infection_isolate, data = finalplotDF)
+modinter_cor <- lm(predicted_Tol~predicted_Res+infection_isolate, data = finalplotDF)
+modPara_cor <- lm(predicted_Tol~predicted_Res, data = finalplotDF)
+
+signifParasite = homemadeGtest(modFULL_cor, modPara_cor)
+signifInter = homemadeGtest(modFULL_cor, modinter_cor)
+signifParasite
+signifInter
+
+#
 lapply(list_finalplotDf, function(df){
   lapply(listPar, function(x){
     cor.test(df[df$infection_isolate %in% x, "predicted_Res"], 
              df[df$infection_isolate %in% x, "predicted_Tol"], 
              method="spearman")})
 })
-  
+
 # Plot
 
 ## function to reverse and log10 resistance axis:
@@ -553,9 +737,9 @@ getPlot <- function(df){
     scale_x_continuous(trans=reverselog_trans(10), "RESISTANCE \n(inverse of) maximum OPG") +
     scale_y_reverse(name = "TOLERANCE \n(inverse of) slope of maximum weight loss on maximum OPG")
   # scale_x_continuous("(predicted) maximum million oocysts per gram of feces",
-    #                    breaks = seq(0, 3500000, 500000),
-    #                    labels = seq(0, 3500000, 500000)/1000000)+
-    # scale_y_continuous("% weight loss by million OPG shed", labels = scales::percent_format(accuracy = 5L))
+  #                    breaks = seq(0, 3500000, 500000),
+  #                    labels = seq(0, 3500000, 500000)/1000000)+
+  # scale_y_continuous("% weight loss by million OPG shed", labels = scales::percent_format(accuracy = 5L))
   
   finalplot_Efal <- ggplot(finalplotDF_Efal, aes(x = predicted_Res, y = predicted_Tol)) +
     geom_errorbar(aes(ymin = conf.low_Tol, ymax = conf.high_Tol), color = "grey") +
@@ -565,10 +749,10 @@ getPlot <- function(df){
                        name = "Mouse strain",labels = c("SCHUNT", "STRA", "BUSNA", "PWD")) +
     scale_x_continuous(trans=reverselog_trans(10), name = "RESISTANCE \n(inverse of) maximum OPG") +
     scale_y_reverse(name = "TOLERANCE \n(inverse of) slope on maximum weight loss on maximum OPG")
-    # scale_x_continuous("(predicted) maximum million oocysts per gram of feces",
-    #                    breaks = seq(0, 3500000, 500000),
-    #                    labels = seq(0, 3500000, 500000)/1000000)+
-    # scale_y_continuous("% weight loss by million OPG shed", labels = scales::percent_format(accuracy = 5L))
+  # scale_x_continuous("(predicted) maximum million oocysts per gram of feces",
+  #                    breaks = seq(0, 3500000, 500000),
+  #                    labels = seq(0, 3500000, 500000)/1000000)+
+  # scale_y_continuous("% weight loss by million OPG shed", labels = scales::percent_format(accuracy = 5L))
   return(list(finalplot_Efer = finalplot_Efer, finalplot_Efal = finalplot_Efal))
 }
 
@@ -579,7 +763,7 @@ listPlots$finalplotDF_cons2$finalplot_Efer
 listPlots$finalplotDF_full$finalplot_Efal # SCHUNT and BUSNA change places when change DF
 listPlots$finalplotDF_cons1$finalplot_Efal
 listPlots$finalplotDF_cons2$finalplot_Efal
-  
+
 pdf(file = "../figures/Fig4_Efer_temp.pdf",
     width = 8, height = 5)
 listPlots$finalplotDF_full$finalplot_Efer
@@ -600,4 +784,3 @@ pdf(file = "../figures/SupplS2_part4_temp.pdf",
     width = 8, height = 5)
 listPlots$finalplotDF_cons2$finalplot_Efal
 dev.off()
-  

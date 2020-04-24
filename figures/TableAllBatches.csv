@@ -1,5 +1,5 @@
-"Batch","freq.SCHUNT Brandenburg139 (E. ferrisi)","freq.STRA Brandenburg139 (E. ferrisi)","freq.BUSNA Brandenburg139 (E. ferrisi)","freq.PWD Brandenburg139 (E. ferrisi)","freq.SCHUNT Brandenburg64 (E. ferrisi)","freq.STRA Brandenburg64 (E. ferrisi)","freq.BUSNA Brandenburg64 (E. ferrisi)","freq.PWD Brandenburg64 (E. ferrisi)","freq.SCHUNT Brandenburg88 (E. falciformis)","freq.STRA Brandenburg88 (E. falciformis)","freq.BUSNA Brandenburg88 (E. falciformis)","freq.PWD Brandenburg88 (E. falciformis)"
-"B1",2,3,2,3,3,4,2,3,NA,NA,NA,NA
-"B2",5,3,4,3,4,4,5,3,NA,NA,NA,NA
-"B3",NA,NA,NA,NA,3,3,3,3,3,3,3,3
-"B4",NA,NA,NA,NA,4,4,4,4,3,4,4,4
+"Batch","freq.SCHUNT Brandenburg139 (E. ferrisi)","freq.STRA Brandenburg139 (E. ferrisi)","freq.BUSNA Brandenburg139 (E. ferrisi)","freq.PWD Brandenburg139 (E. ferrisi)","freq.SCHUNT Brandenburg64 (E. ferrisi)","freq.STRA Brandenburg64 (E. ferrisi)","freq.BUSNA Brandenburg64 (E. ferrisi)","freq.PWD Brandenburg64 (E. ferrisi)","freq.SCHUNT-STRA Brandenburg64 (E. ferrisi)","freq.BUSNA-STRA Brandenburg64 (E. ferrisi)","freq.PWD-SCHUNT Brandenburg64 (E. ferrisi)","freq.BUSNA-PWD Brandenburg64 (E. ferrisi)","freq.SCHUNT Brandenburg88 (E. falciformis)","freq.STRA Brandenburg88 (E. falciformis)","freq.SCHUNT-STRA Brandenburg88 (E. falciformis)","freq.BUSNA-STRA Brandenburg88 (E. falciformis)","freq.PWD-SCHUNT Brandenburg88 (E. falciformis)","freq.BUSNA-PWD Brandenburg88 (E. falciformis)","freq.BUSNA Brandenburg88 (E. falciformis)","freq.PWD Brandenburg88 (E. falciformis)"
+"B1",2,3,2,3,3,4,2,3,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"B2",5,3,4,3,4,4,5,3,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+"B3",NA,NA,NA,NA,3,3,3,3,2,2,3,3,3,3,3,4,3,3,3,3
+"B4",NA,NA,NA,NA,4,4,4,4,4,6,5,6,3,4,5,4,3,4,4,4
