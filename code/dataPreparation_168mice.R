@@ -110,8 +110,11 @@ DSart2$Batch[grep("Exp_005_2", DSart2$Exp_ID)] <- "B4"
 
 # rename (shorter) mouse strains
 # levels(DSart2$Mouse_genotype) <- c("SCHUNT", "STRA", "BUSNA", "PWD")
-levels(DSart2$Mouse_genotype) <- c("SCHUNT", "STRA", "SCHUNT-STRA",  "BUSNA-STRA",
-                                   "PWD-SCHUNT", "BUSNA-PWD", "BUSNA", "PWD")
+levels(DSart2$Mouse_genotype) <- factor(levels(DSart2$Mouse_genotype), 
+       levels = c("MMd_F0 (Sc-Sc)","MMd_F0 (St-St)", "MMd_F1 (Sc-St)", "Mmm-Mmd_F1 (Bu-St)", "Mmm-Mmd_F1 (Pw-Sc)",
+                  "MMm_F1 (Bu-Pw)", "MMm_F0 (Bu-Bu)", "MMm_F0 (Pw-Pw)"),
+       labels = c("SCHUNT", "STRA", "SCHUNT-STRA",  "STRA-BUSNA", "SCHUNT-PWD",
+                  "PWD-BUSNA", "BUSNA", "PWD"))
 
 # 9 animals lost more than 20%, because they died overnight. 
 # 8 were between 18 and 20% but got better
@@ -205,6 +208,6 @@ table(conta$infection_isolate)
 
 # conservative = remove mice with contamination or anthelminthic
 DSart2_conservative <- DSart2[DSart2$anth == F & !DSart2$EH_ID %in% conta$EH_ID,]
-art2SummaryDF_conservative <- makeSummaryTable(DSart2_conservative) # 77 mice
+art2SummaryDF_conservative <- makeSummaryTable(DSart2_conservative) # 118 mice
 
 ### The end ###
