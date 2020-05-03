@@ -21,6 +21,7 @@ mycolors <- scales::seq_gradient_pal("blue", "red", "Lab")(seq(0,1,length.out=8)
 
 # FULL = DSart2 / art2SummaryDF
 nrow(art2SummaryDF) # 168
+
 # conservative = remove mice with contamination or anthelminthic
 # DSart2_conservative2 ; art2SummaryDF_conservative2 # 118 mice
 nrow(art2SummaryDF_conservative)
@@ -64,6 +65,13 @@ tab1wide <- dcast(tab1, Var1 + Var2 ~ Var4 + Var3, value.var="Freq")
 tab1wide
 write.csv(tab1wide, "../figures/Table1_temp.csv", row.names = F)
 
+###### how many mice died before shedding oocysts? ######
+table(art2SummaryDF$sumoocysts.per.tube == 0)
+# 5 mice did not shed oocysts, all infected by E88
+deadNoOO <- art2SummaryDF[art2SummaryDF$sumoocysts.per.tube == 0,"EH_ID"]
+dfNoOO <- DSart2[DSart2$EH_ID %in% deadNoOO,]
+ggplot(dfNoOO, aes(x=dpi, y=relWL, group=EH_ID, col=EH_ID)) + geom_line() + geom_point()
+
 ###### what is the overall peak day for each parasite isolate? ######
 aggregate(art2SummaryDF$dpi_max.OPG,
           list(art2SummaryDF$infection_isolate), 
@@ -74,9 +82,9 @@ aggregate(art2SummaryDF$dpi_max.OPG,
 aggregate(art2SummaryDF$dpi_minWeight,
           list(art2SummaryDF$infection_isolate), 
           function(x) {paste(length(x), median(x), round(sd(x),2))})
-# Brandenburg139 (E. ferrisi) 25 5 2.14
+# Brandenburg139 (E. ferrisi) 25 5 2.08
 # Brandenburg64 (E. ferrisi) 87 5 1.69
-# Brandenburg88 (E. falciformis)  56 9 1.5
+# Brandenburg88 (E. falciformis)  56 9 1.58
 
 ## Make table with batches (only batch 1 was treated with anthelminthics)
 tS1 <- data.frame(table(art2SummaryDF$Batch, art2SummaryDF$Mouse_genotype, art2SummaryDF$infection_isolate))
@@ -156,10 +164,10 @@ dev.off()
 ## Correlation sum of oocysts / peak oocysts
 corSumMax <- cor.test(art2SummaryDF$sumoocysts.per.tube, 
                       art2SummaryDF$max.oocysts.per.tube,
-                      method = "pearson")
+                      method = "spearman", exact=F)
 ggplot(art2SummaryDF, aes(sumoocysts.per.tube, max.oocysts.per.tube)) + 
   geom_smooth(method = "lm")+ geom_point()+
-  geom_label(aes(label=paste0("Pearson coefficient: ", as.character(round(corSumMax$estimate, 2)),
+  geom_label(aes(label=paste0("Spearman coefficient: ", as.character(round(corSumMax$estimate, 2)),
                               "\np-value= ",  as.character(signif(corSumMax$p.value, digits=2))),
                  x =6e6, y =2e6)) +
   xlab("Sum of oocyst") + ylab("Oocysts at peak day")
@@ -184,7 +192,7 @@ homemadeGtest <- function(full, base){
   pvalue <- 1 - stats::pchisq(2*dLL, df=dDF)
   formatC(pvalue, format = "e", digits = 2)
   chisqvalue <- stats::qchisq(p = pvalue, df=dDF)
-  return(paste0("G=",round(2*dLL, 1), " ,df=", dDF, " ,p=", signif(pvalue, digits=2)))
+  return(paste0("G=",round(2*dLL, 1), ", df=", dDF, ", p=", signif(pvalue, digits=2)))
 }
 ## NB. lrtest from pckage lmtest shows similar results ^^ 
 ## I'm reinventing the wheel again
@@ -196,7 +204,7 @@ homemadeGtest <- function(full, base){
   pvalue <- 1 - stats::pchisq(2*dLL, df=dDF)
   formatC(pvalue, format = "e", digits = 2)
   chisqvalue <- stats::qchisq(p = pvalue, df=dDF)
-  return(paste0("G=",round(2*dLL, 1), " ,df=", dDF, " ,p=", signif(pvalue, digits=2)))
+  return(paste0("G=",round(2*dLL, 1), ", df=", dDF, ", p=", signif(pvalue, digits=2)))
 }
 
 ## LRT significance for each factor
@@ -404,6 +412,41 @@ MyListDF_6488 <- MyListDF
 MyListDF_6488$full <- dropLevelsAllFactorsDF(MyListDF_6488$full[!grepl("139", MyListDF_6488$full$infection_isolate),])
 MyListDF_6488$cons <- dropLevelsAllFactorsDF(MyListDF_6488$cons[!grepl("139", MyListDF_6488$cons$infection_isolate),])
 
+##### 2.1. within E64
+##### 2.2. within E88
+parasites <- list("Brandenburg64 (E. ferrisi)", "Brandenburg88 (E. falciformis)")
+
+## RES
+lapply(MyListDF_6488, function(xlist){
+    testSignifWithinParas(xlist[xlist$infection_isolate %in% parasites[1],], "RES")$LRT})
+lapply(MyListDF_6488, function(xlist){
+  testSignifWithinParas(xlist[xlist$infection_isolate %in% parasites[2],], "RES_ZI")$LRT})
+## diff res in E64 "G=26.6, df=7, p=4e-04" and in E88 "G=28.6, df=14, p=0.012"
+
+#### posthoc:
+
+## IMP
+lapply(MyListDF_6488, function(xlist){
+  testSignifWithinParas(xlist[xlist$infection_isolate %in% parasites[1],], "IMP")$LRT})
+# "G=21.5, df=7, p=0.0031"
+lapply(MyListDF_6488, function(xlist){
+  testSignifWithinParas(xlist[xlist$infection_isolate %in% parasites[2],], "IMP")$LRT})
+# "G=21, df=7, p=0.0038"
+
+#### posthoc:
+
+## TOL
+lapply(MyListDF_6488, function(xlist){
+  testSignifWithinParas(xlist[xlist$infection_isolate %in% parasites[1],], "TOL")$LRT})
+# "G=6.8, df=7, p=0.45"
+lapply(MyListDF_6488, function(xlist){
+  testSignifWithinParas(xlist[xlist$infection_isolate %in% parasites[2],], "TOL")$LRT})
+# "G=13.9, df=7, p=0.054"
+
+#### posthoc:
+
+##### 2.3. between E64 and E88
+
 ### Res
 lapply(MyListDF_6488, function(x){testSignif(x,"RES")$LRT}) # interaction factor significant (P and M *)
 ### Imp
@@ -511,7 +554,7 @@ getBigPlot <- function(x){
     geom_errorbar(aes(ymin = conf.low_relWL, ymax = conf.high_relWL), color = "grey") +
     geom_point(aes(col = Genotype), size = 7)+
     facet_grid(.~infection_isolate)+
-    scale_x_log10(name = "Maximum million oocysts per gram of feces (OPG)", 
+    scale_x_log10(name = "Maximum million oocysts per gram of feces (OPG)",
                   breaks = c(100000, 300000, 500000, 1000000, 2000000, 3000000),
                   labels = c(100000, 300000, 500000, 1000000, 2000000, 3000000)/1000000) +
     scale_y_continuous(name = "Maximum relative weight loss",
@@ -554,85 +597,6 @@ pdf(file = "../figures/Fig5_temp.pdf",
 listBigPlot_6488$full
 dev.off()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-############ OLD
-
-
-getPredTol(df)
-getPredTol(MyListDF_locad$full)
-
-x = MyListDF_locad$full
-predTolSlopes <- ggpredict(testSignif(x, "TOL")$modfull, terms = c("Genotype", "infection_isolate"),
-                           condition = c(max.OPG = 1000000))  ## For a million OPG
-predTolSlopes <- data.frame(predTolSlopes)
-names(predTolSlopes)[names(predTolSlopes) %in% c("x", "group")] <- c("Genotype", "infection_isolate")
-predTolSlopes$group <- paste0(predTolSlopes$Mouse_genotype, predTolSlopes$infection_isolate)
-# remove misleading predictions for factors with no value
-predTolSlopes <- predTolSlopes[predTolSlopes$group %in% unique(paste0(x$Genotype,x$infection_isolate)),]
-return(predTolSlopes)
-
-
-
-
-
-get_plotR
-get_plotI
-get_plotT
-get_plottotal
-
-
-
-
-lapply(MyListDF_locad, function(xlist){
-  df = xlist[xlist$infection_isolate %in% xpar,]
-  mod = testSignif(df, "RES")
-  # get_plotR(model = mod$modfull)
-  mod$modfull
-})
-})
-
-
-
-
-
-
-
-
-
-
-
-MyListDF_locad$full
-
-lapply(MyListDF_F0, function(xlist){
-  lapply(listPar[c(1,2)], function(xpar){
-    testSignifWithinParas(xlist[xlist$infection_isolate %in% xpar,], "RES")$LRT})
-}) ## diff res in E64, not in E138
-
-modelsR_1 <- lapply(MyListDF_F0, function(xlist){
-  lapply(listPar[c(1,2)], function(xpar){
-    testSignifWithinParas(xlist[xlist$infection_isolate %in% xpar,], "RES")})
-})
-
-modelsR_1$full
-
-
-
-
-# 
-# get_plotR(dataframe = df, model = mod)})
-# })
 
 
 
@@ -809,8 +773,6 @@ pdf(file = "../figures/SupplS2_part2_temp.pdf",
     width = 10, height = 10)
 listPlotsRIT[[2]]
 dev.off()
-
-
 
 bigPlot <- getBigPlot(art2SummaryDF)
 
