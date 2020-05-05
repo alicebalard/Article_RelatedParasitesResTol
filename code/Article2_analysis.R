@@ -301,82 +301,151 @@ testSignifWithinParas <- function(dataframe, which){
   return(list(modfull = modFULL, LRT = G))
 }
 
-## Plots
-
-### A. Comparison (E64-E139)
-### B. Separately per parasite (E64-E88)
-get_plot_2par <- function(df, model, cols= mycolors[c(1,2,7,8)], plottype){
-  plot <-plot_model(model, type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
-    scale_color_manual(values = cols)+
-    xlab("Eimeria isolate") + 
-    theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13))
-  if(plottype == "RES"){
-    plot <- plot + scale_y_log10("(predicted) maximum million OPG \n(oocysts per gram of feces)", 
-                                 breaks = seq(0, 5e6, 0.5e6),
-                                 labels = as.character(seq(0, 5e6, 0.5e6)/1e6))+
-      ggtitle("Maximum parasite load = (inverse of) resistance \n(mean and 95%CI)")
-  } else if (plottype == "IMP"){
-    plot <- plot + scale_y_continuous(labels = scales::percent_format(accuracy = 5L), 
-                       name = "(predicted) maximum weight loss \nrelative to day of infection")+
-      ggtitle("Maximum weight loss \n(mean and 95%CI)") 
-  } 
-}
-
-# Get predicted values for resistance and impact:
-getPred <- function(x, which){
-  pred <- ggpredict(testSignif(x, which)$modfull, terms = c("Genotype", "infection_isolate"))
-  pred <- (data.frame(pred))
-  names(pred)[names(pred) %in% c("x", "group")] <- c("Genotype", "infection_isolate")
-  # remove misleading predictions for factors with no value
-  pred$group <- paste0(pred$Genotype,pred$infection_isolate)
-  pred <- pred[pred$group %in% unique(paste0(x$Genotype,x$infection_isolate)),]
+# Get predicted values for resistance, impact or tolerance:
+getPredictedValues <- function(x, which, oneortwo){ # one parasite at a time or 2?
+  if(oneortwo == 1){
+    ## check possible error
+    if((length(unique(x$infection_isolate)) !=1) == TRUE){
+      print("Whoo WOOOO Whoo more than 1 parasites isolate!!!")
+    }
+    if (which == "TOL"){  
+      pred <- ggpredict(testSignifWithinParas(x, "TOL")$modfull, terms = c("Genotype"),
+                        condition = c(max.OPG = 1000000))  ## For a million OPG
+      pred <- (data.frame(pred))
+    } else{ 
+      pred <- ggpredict(testSignifWithinParas(x, which)$modfull)
+      pred <- (data.frame(pred$Genotype))
+    }
+    names(pred)[names(pred) %in% "x"] <- "Genotype"
+  }
+  if(oneortwo == 2){
+    ## check possible error
+    if((length(unique(x$infection_isolate)) !=2) == TRUE){
+      print("Whoo WOOOO Whoo that's not just 2 parasites isolates!!!")
+    }
+    if (which == "TOL"){ 
+      pred <- ggpredict(testSignif(x, "TOL")$modfull, terms = c("Genotype", "infection_isolate"),
+                        condition = c(max.OPG = 1000000))  ## For a million OPG
+    } else{ 
+      pred <- ggpredict(testSignif(x, which)$modfull, terms = c("Genotype", "infection_isolate"))
+    }
+    pred <- (data.frame(pred))
+    names(pred)[names(pred) %in% c("x", "group")] <- c("Genotype", "infection_isolate")
+    # remove misleading predictions for factors with no value
+    pred$group <- paste0(pred$Genotype,pred$infection_isolate)
+    pred <- pred[pred$group %in% unique(paste0(x$Genotype,x$infection_isolate)),]
+  }
   return(pred)
 }
 
-# Predicted values of slopes:
-getPredTol <- function(x){
-  predTolSlopes <- ggpredict(testSignif(x, "TOL")$modfull, terms = c("Genotype", "infection_isolate"),
-                             condition = c(max.OPG = 1000000))  ## For a million OPG
-  predTolSlopes <- data.frame(predTolSlopes)
-  names(predTolSlopes)[names(predTolSlopes) %in% c("x", "group")] <- c("Genotype", "infection_isolate")
-  predTolSlopes$group <- paste0(predTolSlopes$Genotype, predTolSlopes$infection_isolate)
-  # remove misleading predictions for factors with no value
-  predTolSlopes <- predTolSlopes[predTolSlopes$group %in% unique(paste0(x$Genotype,x$infection_isolate)),]
-  return(predTolSlopes)
+## Plots
+get_plot_2par <- function(df, cols= mycolors[c(1,2,7,8)], plottype, N = 3){ # n is the maximum OPG for end of geom_line
+  if(plottype != "TOL"){
+    model = testSignif(df,plottype)$modfull
+    plot <- plot_model(model, type = "int", dot.size = 4, dodge = .5) + # mean-value and +/- 1 standard deviation
+      scale_color_manual(values = cols)+
+      xlab("Eimeria isolate") + 
+      theme(axis.title.x = element_text(hjust=1), axis.text=element_text(size=13))
+    if(plottype == "RES" | plottype == "RES_ZI"){
+      plot <- plot + scale_y_log10("(predicted) maximum million OPG \n(oocysts per gram of feces)", 
+                                   breaks = seq(0, 5e6, 0.5e6),
+                                   labels = as.character(seq(0, 5e6, 0.5e6)/1e6))+
+        ggtitle("Maximum parasite load = (inverse of) resistance \n(mean and 95%CI)")
+    } else if (plottype == "IMP"){
+      plot <- plot + scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                                        name = "(predicted) maximum weight loss \nrelative to day of infection")+
+        ggtitle("Maximum weight loss \n(mean and 95%CI)")
+    }
+  }
+  if (plottype == "TOL"){
+    pts <- getPredictedValues(df, which = "TOL", oneortwo = 2)
+    pts$predicted <- pts$predicted*N
+    pts$relWL_OPGnull <- 0
+    names(pts)[names(pts) %in% c("predicted")] <- "relWL_NMOPG"
+    pts <- melt(pts, measure.vars = c("relWL_OPGnull", "relWL_NMOPG"))
+    names(pts)[names(pts) %in% c("variable", "value")] <- c("max.OPG", "relWL")
+    pts$max.OPG <- as.character(pts$max.OPG)
+    pts$max.OPG[pts$max.OPG %in% "relWL_OPGnull"] <- "0"
+    pts$max.OPG[pts$max.OPG %in% "relWL_NMOPG"] <- paste0(N, "e6")
+    pts$max.OPG <- as.numeric(pts$max.OPG)
+    pts$group <- factor(paste0(pts$Mouse_genotype, pts$infection_isolate))
+    
+    pts$label <- pts$Genotype
+    pts$label[pts$max.OPG %in% 0] <- NA
+    
+    plot <- ggplot(pts, aes(x = max.OPG, y = relWL, col = Genotype)) +
+      geom_line(aes(group = Genotype)) +
+      facet_grid(.~infection_isolate) +
+      geom_label(aes(label = label), nudge_x = 0.25e6, na.rm = T)+
+      scale_color_manual(values = cols) +
+      scale_x_continuous("maximum million oocysts per gram of feces",
+                         breaks = seq(0, 4000000, 1000000),
+                         labels = seq(0, 4000000, 1000000)/1000000) +
+      scale_y_continuous(name = "maximum weight loss \nrelative to day of infection",
+                         breaks = seq(0,0.3, 0.05),
+                         labels = scales::percent_format(accuracy = 5L)) +
+      geom_point(data = df, size = 4, alpha = .5)+
+      coord_cartesian(xlim=c(0, N*1000000), ylim=c(0, 0.25)) +
+      theme(legend.position = "none") +
+      ggtitle("Tolerance \n(slope of B (max weight loss) on A (max parasite load), per genotype)")
+  }
+  return(plot)
 }
-  
-get_plot_2par_T <- function(df, N, cols=mycolors[c(1,2,7,8)]){ # n is the maximum OPG for end of geom_line
-  # make line up to 5e6 OPG for plot
-  pts <- getPredTol(df)
-  pts$predicted <- pts$predicted*N
-  pts$relWL_OPGnull <- 0
-  names(pts)[names(pts) %in% c("predicted")] <- "relWL_NMOPG"
-  pts <- melt(pts, measure.vars = c("relWL_OPGnull", "relWL_NMOPG"))
-  names(pts)[names(pts) %in% c("variable", "value")] <- c("max.OPG", "relWL")
-  pts$max.OPG <- as.character(pts$max.OPG)
-  pts$max.OPG[pts$max.OPG %in% "relWL_OPGnull"] <- "0"
-  pts$max.OPG[pts$max.OPG %in% "relWL_NMOPG"] <- paste0(N, "e6")
-  pts$max.OPG <- as.numeric(pts$max.OPG)
-  pts$group <- factor(paste0(pts$Mouse_genotype, pts$infection_isolate))
-  
-  pts$label <- pts$Genotype
-  pts$label[pts$max.OPG %in% 0] <- NA
-  
-  ggplot(pts, aes(x = max.OPG, y = relWL, col = Genotype)) +
-    geom_line(aes(group = Genotype)) +
-    facet_grid(.~infection_isolate) +
-    geom_label(aes(label = label), nudge_x = 0.25e6, na.rm = T)+
-    scale_color_manual(values = cols) +
-    scale_x_continuous("maximum million oocysts per gram of feces",
-                       breaks = seq(0, 4000000, 1000000),
-                       labels = seq(0, 4000000, 1000000)/1000000) +
-    scale_y_continuous(name = "maximum weight loss \nrelative to day of infection",
-                       breaks = seq(0,0.3, 0.05),
-                       labels = scales::percent_format(accuracy = 5L)) +
-    geom_point(data = df, size = 4, alpha = .5)+
-    coord_cartesian(xlim=c(0, N*1000000), ylim=c(0, 0.25)) +
-    theme(legend.position = "none") +
-    ggtitle("Tolerance \n(slope of B (max weight loss) on A (max parasite load), per genotype)")
+
+get_plot_1par <- function(df, cols= mycolors, plottype, N = 3){ # n is the maximum OPG for end of geom_line
+  plotdf <- getPredictedValues(df, plottype, oneortwo =1)
+  if(plottype != "TOL"){
+    plot <- ggplot(plotdf, aes(x=Genotype, y=predicted, col=Genotype))+
+      geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width=.1) +
+      geom_point(size = 4) +
+      geom_text(aes(label=substring(Genotype, 1, 1)), col = "white")+
+      scale_color_manual(values = cols)+
+      theme(axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+            axis.text=element_text(size=13))
+    if(plottype == "RES" | plottype == "RES_ZI"){
+      plot <- plot + scale_y_log10("(predicted) maximum million OPG \n(oocysts per gram of feces)",
+                                   breaks = seq(0, 5e6, 0.5e6),
+                                   labels = as.character(seq(0, 5e6, 0.5e6)/1e6))+
+        ggtitle("Maximum parasite load = (inverse of) resistance \n(mean and 95%CI)")
+    } else if (plottype == "IMP"){
+      plot <- plot + scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                                        name = "(predicted) maximum weight loss \nrelative to day of infection")+
+        ggtitle("Maximum weight loss \n(mean and 95%CI)")
+    }
+  }
+  if (plottype == "TOL"){
+    pts <- getPredictedValues(df, which = "TOL", oneortwo = 1)
+    pts$predicted <- pts$predicted*N
+    pts$relWL_OPGnull <- 0
+    names(pts)[names(pts) %in% c("predicted")] <- "relWL_NMOPG"
+    pts <- melt(pts, measure.vars = c("relWL_OPGnull", "relWL_NMOPG"))
+    names(pts)[names(pts) %in% c("variable", "value")] <- c("max.OPG", "relWL")
+    pts$max.OPG <- as.character(pts$max.OPG)
+    pts$max.OPG[pts$max.OPG %in% "relWL_OPGnull"] <- "0"
+    pts$max.OPG[pts$max.OPG %in% "relWL_NMOPG"] <- paste0(N, "e6")
+    pts$max.OPG <- as.numeric(pts$max.OPG)
+    pts$group <- factor(paste0(pts$Genotype, pts$infection_isolate))
+    
+    pts$label <- pts$Genotype
+    pts$label[pts$max.OPG %in% 0] <- NA
+    
+    plot <- ggplot(pts, aes(x = max.OPG, y = relWL, col = Genotype)) +
+      geom_line(aes(group = Genotype)) +
+      facet_grid(.~infection_isolate) +
+      geom_label(aes(label = label), nudge_x = 0.25e6, na.rm = T)+
+      scale_color_manual(values = cols) +
+      scale_x_continuous("maximum million oocysts per gram of feces",
+                         breaks = seq(0, 4000000, 1000000),
+                         labels = seq(0, 4000000, 1000000)/1000000) +
+      scale_y_continuous(name = "maximum weight loss \nrelative to day of infection",
+                         breaks = seq(0,0.3, 0.05),
+                         labels = scales::percent_format(accuracy = 5L)) +
+      geom_point(data = df, size = 4, alpha = .5)+
+      coord_cartesian(xlim=c(0, N*1000000), ylim=c(0, 0.25)) +
+      theme(legend.position = "none",  axis.text=element_text(size=13)) +
+      ggtitle("Tolerance \n(slope of B (max weight loss) on A (max parasite load), per genotype)")
+  }
+  return(plot)
 }
 
 ################################
@@ -409,20 +478,9 @@ lapply(MyListDF_locad, function(x){testSignif(x,"IMP")$LRT}) # interaction facto
 lapply(MyListDF_locad, function(x){testSignif(x,"TOL")$LRT}) # interaction factor not significant
 
 ## Plot Figure 3:
-listPlotRes_LA <- lapply(MyListDF_locad, function(x){
-  df = x;  mod = testSignif(x,"RES")$modfull
-  get_plot_2par(df, mod, plottype = "RES")
-})
-
-listPlotImp_LA <- lapply(MyListDF_locad, function(x){
-  df = x;  mod = testSignif(x,"IMP")$modfull
-  get_plot_2par(df, mod, plottype = "IMP")
-})
-
-listPlotTol_LA <- lapply(MyListDF_locad, function(x){
-  df = x
-  get_plot_2par_T(df, 4)
-})
+listPlotRes_LA <- lapply(MyListDF_locad, function(x){get_plot_2par(x, plottype = "RES")})
+listPlotImp_LA <- lapply(MyListDF_locad, function(x){get_plot_2par(x, plottype = "IMP")})
+listPlotTol_LA <- lapply(MyListDF_locad, function(x){get_plot_2par(x, plottype = "TOL")})
 
 Fig3 <- cowplot::ggdraw() +
   draw_plot(listPlotRes_LA$full + theme(legend.position = "none"), 0, .5, .49, .49) +
@@ -471,64 +529,14 @@ lapply(MyListDF_88, function(xlist){testSignifWithinParas(xlist, "TOL")$LRT})
 
 ##### 2.3. plot within E64 (figure 4)
 ## Plot Figure 4:
-get_plotR_onepar <- function(df, model, cols= mycolors, plottype){
-  p <- ggpredict(model);  df <- as.data.frame(p$Genotype)
-  plot <- ggplot(df, aes(x=x, y=predicted, col=x))+
-    geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width=.1) +
-    geom_point(size = 4) +
-    geom_text(aes(label=substring(x, 1, 1)), col = "white")+
-    scale_color_manual(values = cols)+
-    theme(axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank(),
-          axis.text=element_text(size=13))
-  if(plottype == "RES"){
-    plot <- plot + scale_y_log10("(predicted) maximum million OPG \n(oocysts per gram of feces)",
-                                 breaks = seq(0, 5e6, 0.5e6),
-                                 labels = as.character(seq(0, 5e6, 0.5e6)/1e6))+
-      ggtitle("Maximum parasite load = (inverse of) resistance \n(mean and 95%CI)")
-  }
-  return(list(plot=plot, prediction=p))
-}
-
-listPlotRes_64 <- lapply(MyListDF_64, function(x){
-  df = x ; mod = testSignifWithinParas(x,"RES")$modfull
-  get_plotR_onepar(df, mod, cols = mycolors, plottype = "RES")
-})
-listPlotRes_64$full$plot
-
-### E88
-listPlotRes_88 <- lapply(MyListDF_88, function(x){
-  df = x ; mod = testSignifWithinParas(x,"RES_ZI")$modfull
-  get_plotR_onepar(df, mod, cols = mycolors)
-})
-listPlotRes_88$full$plot
-
-
-
-
-
-
-
-
-
-
-
-#############old
-
-listPlotImp_6488 <- lapply(MyListDF_6488, function(x){
-  df = x
-  mod = testSignif(x,"IMP")$modfull
-  get_plotI(df, mod, cols = mycolors)
-})
-
-listPlotTol_6488 <- lapply(MyListDF_6488, function(x){
-  df = x
-  get_plotT(df, 4.5, cols = mycolors)
-})
+listPlotRes_64 <- lapply(MyListDF_64, function(x){get_plot_1par(x, cols = mycolors, plottype = "RES")})
+listPlotImp_64 <- lapply(MyListDF_64, function(x){get_plot_1par(x, cols = mycolors, plottype = "IMP")})
+listPlotTol_64 <- lapply(MyListDF_64, function(x){get_plot_1par(x, cols = mycolors, plottype = "TOL")})
 
 Fig4 <- cowplot::ggdraw() +
-  draw_plot(listPlotRes_6488$full + theme(legend.position = "none"), 0, .5, .49, .49) +
-  draw_plot(listPlotImp_6488$full + theme(legend.position = "none"), .5, .5, .49, .49) +
-  draw_plot(listPlotTol_6488$full+ theme(legend.position = "none"), 0, 0, .7, .49) +
+  draw_plot(listPlotRes_64$full + theme(legend.position = "none"), 0, .5, .49, .49) +
+  draw_plot(listPlotImp_64$full + theme(legend.position = "none"), .5, .5, .49, .49) +
+  draw_plot(listPlotTol_64$full+ theme(legend.position = "none"), 0, 0, .7, .49) +
   draw_plot_label(c("A", "B", "C"), c(.01, .51, .01), c(1, 1, .5), size = 15)
 Fig4
 
@@ -539,131 +547,115 @@ dev.off()
 
 pdf(file = "../figures/SupplS2_Fig4_temp.pdf", width = 8, height = 8)
 cowplot::ggdraw() +
-  draw_plot(listPlotRes_6488$cons + theme(legend.position = "none"), 0, .5, .49, .49) +
-  draw_plot(listPlotImp_6488$cons + theme(legend.position = "none"), .5, .5, .49, .49) +
-  draw_plot(listPlotTol_6488$cons+ theme(legend.position = "none"), 0, 0, .7, .49) +
+  draw_plot(listPlotRes_64$cons + theme(legend.position = "none"), 0, .5, .49, .49) +
+  draw_plot(listPlotImp_64$cons + theme(legend.position = "none"), .5, .5, .49, .49) +
+  draw_plot(listPlotTol_64$cons+ theme(legend.position = "none"), 0, 0, .7, .49) +
   draw_plot_label(c("A", "B", "C"), c(.01, .51, .01), c(1, 1, .5), size = 15)
 dev.off()
 
+##### 2.4. plot within E88 (figure 6)
+listPlotRes_88 <- lapply(MyListDF_88, function(x){get_plot_1par(x, cols = mycolors, plottype = "RES_ZI")})
+listPlotImp_88 <- lapply(MyListDF_88, function(x){get_plot_1par(x, cols = mycolors, plottype = "IMP")})
+listPlotTol_88 <- lapply(MyListDF_88, function(x){get_plot_1par(x, cols = mycolors, plottype = "TOL")})
 
-##### 2.4. plot within E88 (figure 5)
+Fig6 <- cowplot::ggdraw() +
+  draw_plot(listPlotRes_88$full + theme(legend.position = "none"), 0, .5, .49, .49) +
+  draw_plot(listPlotImp_88$full + theme(legend.position = "none"), .5, .5, .49, .49) +
+  draw_plot(listPlotTol_88$full+ theme(legend.position = "none"), 0, 0, .7, .49) +
+  draw_plot_label(c("A", "B", "C"), c(.01, .51, .01), c(1, 1, .5), size = 15)
+Fig6
 
+pdf(file = "../figures/Fig6_temp.pdf",
+    width = 8, height = 8)
+Fig6
+dev.off()
 
+pdf(file = "../figures/SupplS2_Fig6_temp.pdf", width = 8, height = 8)
+cowplot::ggdraw() +
+  draw_plot(listPlotRes_88$cons + theme(legend.position = "none"), 0, .5, .49, .49) +
+  draw_plot(listPlotImp_88$cons + theme(legend.position = "none"), .5, .5, .49, .49) +
+  draw_plot(listPlotTol_88$cons+ theme(legend.position = "none"), 0, 0, .7, .49) +
+  draw_plot_label(c("A", "B", "C"), c(.01, .51, .01), c(1, 1, .5), size = 15)
+dev.off()
 
-############### 3. E. ferrisi64 and E.fal88: coupling
+############### 3. E. ferrisi64 and E.fal88: coupling (figure 5)
 
-# Predicted values of resistance and tolerance per mouse genotype:
-getMergeRIT <- function(x, y, z){
-  colnames(x) <- gsub("name.", "", colnames(x))
-  names(x)[names(x) %in% c("predicted", "conf.low",  "std.error", "conf.high")] <-
-    paste(names(x)[names(x) %in% c("predicted", "conf.low",  "std.error", "conf.high")], "OPG", sep = "_")
-  colnames(y) <- gsub("name.", "", colnames(y))
-  names(y)[names(y) %in% c("predicted", "conf.low",  "std.error", "conf.high")] <-
-    paste(names(y)[names(y) %in% c("predicted", "conf.low",  "std.error", "conf.high")], "relWL", sep = "_")
-  colnames(z) <- gsub("name.", "", colnames(z))
-  names(z)[names(z) %in% c("predicted", "conf.low",  "std.error", "conf.high")] <-
-    paste(names(z)[names(z) %in% c("predicted", "conf.low",  "std.error", "conf.high")], "Tol", sep = "_")
-  merge(merge(x, y), z)
-}
-
-## function to reverse and log10 resistance axis:
-reverselog_trans <- function(base = exp(1)) {
-  trans <- function(x) -log(x, base)
-  inv <- function(x) base^(-x)
-  trans_new(paste0("reverselog-", format(base)), trans, inv, 
-            log_breaks(base = base), 
-            domain = c(1e-100, Inf))
-}
-
-
-predRes <- getPred(MyListDF_6488$full, "RES")
-predResZI <- getPred(MyListDF_6488$full, "RES_ZI")
-
-
-
-
-getBigPlot <- function(x){ ## NB. for RES Efalci, ZINB model
-  predRes <- getPred(x, "RES")
-  predResZI <- getPred(x, "RES_ZI")
-  predImp <- getPred(x, "IMP")
-  predTol <- getPredTol(x)
-  finalplotDF <- getMergeRIT(predRes, predImp, predTol)
-  finalplotDF
+# make for one parasite 
+getBigPlot <- function(x, isZINB = F, posx1, posy1, posx2, posy2){ ## NB. for RES Efalci, ZINB model
+  # make dataframe for plot
+  if(isZINB==TRUE){
+    predRes <- getPredictedValues(x, "RES_ZI",1)
+  } else {
+    predRes <- getPredictedValues(x, "RES", 1)
+  }
+  predImp <- getPredictedValues(x, "IMP", 1)
+  predTol <- getPredictedValues(x, "TOL", 1)
+  names(predRes)[names(predRes) %in% c("predicted", "conf.low",  "std.error", "conf.high")] <-
+    paste(names(predRes)[names(predRes) %in% c("predicted", "conf.low",  "std.error", "conf.high")], "OPG", sep = "_")
+  names(predImp)[names(predImp) %in% c("predicted", "conf.low",  "std.error", "conf.high")] <-
+    paste(names(predImp)[names(predImp) %in% c("predicted", "conf.low",  "std.error", "conf.high")], "relWL", sep = "_")
+  names(predTol)[names(predTol) %in% c("predicted", "conf.low",  "std.error", "conf.high")] <-
+    paste(names(predTol)[names(predTol) %in% c("predicted", "conf.low",  "std.error", "conf.high")], "Tol", sep = "_")
+  finalplotDF <- merge(merge(predRes, predImp), predTol, by = "Genotype")
   # test correlations:
-  listPar <- list("Brandenburg64 (E. ferrisi)", "Brandenburg88 (E. falciformis)")
-  
-  l1 <- lapply(listPar, function(x){
-    c <- cor.test(finalplotDF[finalplotDF$infection_isolate %in% x, "predicted_OPG"],
-                  finalplotDF[finalplotDF$infection_isolate %in% x, "predicted_relWL"],
-                  method="spearman")
-    paste0(as.character(c$method), ": ", signif(c$estimate, digits=2), ",\n p-value=",  signif(c$p.value, digits=2))
-  })
-  
-  addCortext1 <- data.frame(infection_isolate = unlist(listPar),
-                            testcor = unlist(l1))
-  
-  l2 <- lapply(listPar, function(x){
-    c <- cor.test(finalplotDF[finalplotDF$infection_isolate %in% x, "predicted_OPG"],
-                  finalplotDF[finalplotDF$infection_isolate %in% x, "predicted_Tol"],
-                  method="spearman")
-    paste0(as.character(c$method), ": ", signif(c$estimate, digits=2), ",\n p-value=",  signif(c$p.value, digits=2))
-  })
-  
-  addCortext2 <- data.frame(infection_isolate = unlist(listPar),
-                            testcor = unlist(l2))
-  
-  ## Plot raw (WL vs OPG) and res-tol
-  
+  c1 <- cor.test(finalplotDF$predicted_OPG, finalplotDF$predicted_relWL, method="spearman")
+  testcor1 <- paste0(as.character(c1$method), ": ", signif(c1$estimate, digits=2), "\n p-value=", signif(c1$p.value, digits=2))
+  c2 <- cor.test(finalplotDF$predicted_OPG, finalplotDF$predicted_Tol, method="spearman")
+  testcor2 <- paste0(as.character(c2$method), ": ", signif(c2$estimate, digits=2), "\n p-value=", signif(c2$p.value, digits=2))
+  # Plot
   ## Plot1
   P1 <- ggplot(finalplotDF, aes(x=predicted_OPG, y=predicted_relWL)) +
     geom_errorbarh(aes(xmin = conf.low_OPG, xmax = conf.high_OPG), color = "grey") +
     geom_errorbar(aes(ymin = conf.low_relWL, ymax = conf.high_relWL), color = "grey") +
     geom_point(aes(col = Genotype), size = 7)+
-    facet_grid(.~infection_isolate)+
-    scale_x_log10(name = "Maximum million oocysts per gram of feces (OPG)",
-                  breaks = c(100000, 300000, 500000, 1000000, 2000000, 3000000),
-                  labels = c(100000, 300000, 500000, 1000000, 2000000, 3000000)/1000000) +
+    scale_x_continuous(name = "Maximum million oocysts per gram of feces (OPG)",
+                       breaks = seq(0.5,5,0.5)*1e6,
+                       labels = seq(0.5,5,0.5)) +
     scale_y_continuous(name = "Maximum relative weight loss",
-                       labels = scales::percent_format(accuracy = 5L))+
+                       labels = scales::percent_format(accuracy = 1))+
     geom_text(aes(label=substring(Genotype, 1, 1)), col = "white")+
     scale_color_manual(values = mycolors) +
     geom_smooth(method = "lm", se = F, col = "black")+
-    geom_text(data = addCortext1, aes(label = testcor, x = 1.8e6, y = 0.17))
-  P1
-  
-  ## Plot2
+    annotate("text", x = posx1, y = posy1, label = testcor1)+
+    theme(legend.position = "none")
   P2 <- ggplot(finalplotDF, aes(x = predicted_OPG, y = predicted_Tol)) +
     geom_errorbar(aes(ymin = conf.low_Tol, ymax = conf.high_Tol), color = "grey") +
     geom_errorbarh(aes(xmin = conf.low_OPG, xmax = conf.high_OPG), color = "grey") +
     geom_point(aes(col = Genotype), size = 7)+
-    scale_x_continuous(trans=reverselog_trans(10), "RESISTANCE \n(inverse of) maximum million OPG", 
-                       breaks = c(100000, 300000, 500000, 1000000, 2000000, 3000000),
-                       labels = c(100000, 300000, 500000, 1000000, 2000000, 3000000)/1000000) +
-    scale_y_continuous(trans=reverselog_trans(10), name = "TOLERANCE \n(inverse of) slope of maximum weight loss on maximum OPG")+
-    facet_grid(.~infection_isolate)+
+    scale_x_reverse("RESISTANCE \n(inverse of) maximum million OPG",
+                       breaks = seq(0.5,5,0.5)*1e6,
+                       labels = seq(0.5,5,0.5)) +
+    scale_y_reverse(name = "TOLERANCE \n(inverse of) slope of maximum weight loss \non maximum OPG")+
     geom_text(aes(label=substring(Genotype, 1, 1)), col = "white")+
-    coord_cartesian(ylim=c(0.5,0.01))+
     scale_color_manual(values = mycolors) +
     geom_smooth(method = "lm", se = F, col = "black") +
-    geom_text(data = addCortext2, aes(label = testcor, x = 1.5e6, y = 0.22))
-  P2
-  
+    annotate("text", x = posx2, y = posy2, label = testcor2)+
+    theme(legend.position = "none")
+
   bigPlot <- cowplot::ggdraw() +
     draw_plot(P1, 0, .5, 1, .5) +
     draw_plot(P2, 0, 0, 1, .5)
-  bigPlot
+  return(bigPlot)
 }
 
-listBigPlot_6488 <- lapply(MyListDF_6488, function(x){
-  getBigPlot(x)
+listBigPlot_64 <- lapply(MyListDF_64, function(x){
+  getBigPlot(x, posx1 = 1e6, posy1 = 0.11, posx2 = 1.5e6, posy2 = 0.09)
+})
+
+listBigPlot_88 <- lapply(MyListDF_88, function(x){
+  getBigPlot(x, isZINB=TRUE, posx1 = 2.5e6, posy1 = 0.175, posx2 = 2e6, posy2 = 0.4)
 })
 
 pdf(file = "../figures/Fig5_temp.pdf",
-    width = 8, height = 8)
-listBigPlot_6488$full
+     width = 8, height = 8)
+cowplot::ggdraw() +
+  draw_plot(listBigPlot_64$full, 0, 0, .5, 1) + 
+  draw_plot(listBigPlot_88$full, 0.5, 0, .5, 1)
 dev.off()
 
 pdf(file = "../figures/SupplS2_Fig5_temp.pdf",
     width = 8, height = 8)
-listBigPlot_6488$cons
+cowplot::ggdraw() +
+  draw_plot(listBigPlot_64$cons, 0, 0, .5, 1) + 
+  draw_plot(listBigPlot_88$cons, 0.5, 0, .5, 1)
 dev.off()
