@@ -116,6 +116,7 @@ levels(DSart2$Mouse_genotype) <- factor(levels(DSart2$Mouse_genotype),
        labels = c("SCHUNT", "STRA", "SCHUNT-STRA",  "STRA-BUSNA", "SCHUNT-PWD",
                   "PWD-BUSNA", "BUSNA", "PWD"))
 
+###########################################################
 # 9 animals lost more than 20%, because they died overnight. 
 # 8 were between 18 and 20% but got better
 pb <- DSart2$EH_ID[DSart2$relWL >0.18 & !is.na(DSart2$relWL)]
@@ -124,9 +125,10 @@ ggplot(DSart2[DSart2$EH_ID %in% pb,], aes(x=dpi, y=relWL, group = EH_ID, col=EH_
   facet_grid(.~infection_isolate)
 # For the 9, we will remove the last weight point, as it's the weight of a dehydrated cadaver
 diedOvernight <- DSart2$EH_ID[DSart2$relWL >0.20 & !is.na(DSart2$relWL)]
-# change here RELATVIE WEIGHT for WEIGHT 3/04/2020
-DSart2$weight[
-  DSart2$EH_ID %in% diedOvernight & DSart2$relWL > 0.20 & !is.na(DSart2$relWL)] <-NA
+# rm all last weight that is the weight of a cadaver
+DSart2[DSart2$EH_ID %in% diedOvernight & DSart2$relWL > 0.20 & !is.na(DSart2$relWL),
+       c("weight","weightloss","relativeWeight","relWL")] <- NA
+###########################################################
 
 # Summarize all
 art2SummaryDF <- makeSummaryTable(DSart2)
