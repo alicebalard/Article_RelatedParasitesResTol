@@ -1,0 +1,110 @@
+\usepackage[style=apa,backend=biber,maxcitenames=2,natbib=true,url=false, uniquename=false, uniquelist=false]{biblatex}
+\usepackage[british]{babel}
+\usepackage{csquotes}
+\DeclareLanguageMapping{british}{british-apa}
+\LetLtxMacro{\cite}{\citet}  % year in ()
+
+% mode d'emploi:
+%\citep{venables_modern_2002} \par
+%\cite{kahle_ggmap_2013-1}
+%\parencite[e.g.][trucapres]{venables_modern_2002, kahle_ggmap_2013-1}
+
+% so that the title for the bibliography section is not "bibliography" but "references"
+\DefineBibliographyStrings{english}{%
+  bibliography = {References},
+}
+
+%awesome explanation for generating (a) and (b) same author, same year but not same coauthors list. In summary, use uniquelist=false and force manually bibtex entry with sortyear and sortname. https://tex.stackexchange.com/questions/251285/biblatex-same-first-author-same-year-cite-as-a-b-etc
+
+% so that initials of authors dont appear in the text.use uniquename=false https://tex.stackexchange.com/questions/134535/biblatex-authoryear-style-in-text-citations-display-first-name-initials-for-ce
+
+% so that all authors are cited in the reference list (such as Boissy et al. 2007)
+\renewcommand{\maxprtauth}{99}
+
+% maybe "no issue" could work using biber (I also used that for other styles to tell biblatex not to read the ISBN or ISSN...)
+\DeclareSourcemap{
+  \maps[datatype=bibtex]{
+    \map{
+      \step[fieldset=number, null]
+    }
+  }
+}
+%YEAH! it worked <3
+\addbibresource{PhDthesis2305.bib}
+
+%for not having 5 authors cited in the text:https://tex.stackexchange.com/questions/452032/setting-maxcitenames-for-biblatex-apa
+
+%combined with this: https://tex.stackexchange.com/questions/97031/how-to-modify-apa-biblatex-style-to-look-like-elsarticle-harv-style
+
+\makeatletter
+\newcommand{\apamaxcitenames}{8}
+
+\DeclareNameFormat{labelname}{%
+  % First set the truncation point
+  \ifthenelse{\value{uniquelist}>1}
+    {\numdef\cbx@min{\value{uniquelist}}}
+    {\numdef\cbx@min{\value{minnames}}}%
+  % Always print the first name and the second if there are only two since
+  % "et al" must always be plural
+  \ifboolexpr{test {\ifnumcomp{\value{listcount}}{=}{1}}
+              or test {\ifnumcomp{\value{listtotal}}{=}{2}}}
+    {\usebibmacro{labelname:doname}%
+      {\namepartfamily}%
+      {\namepartfamilyi}%
+      {\namepartgiven}%
+      {\namepartgiveni}%
+      {\namepartprefix}%
+      {\namepartprefixi}%
+      {\namepartsuffix}%
+      {\namepartsuffixi}}
+    % We are looking at name >=3
+    % If the list is 6 or more names or we have seen citation before, potential truncation
+    {\ifboolexpr{test {\ifnumcomp{\value{listtotal}}{>}{\value{maxnames}}}
+                 or test {\ifciteseen}}
+     % Less than the truncation point, print normally
+     {\ifnumcomp{\value{listcount}}{<}{\cbx@min + 1}
+       {\usebibmacro{labelname:doname}%
+         {\namepartfamily}%
+         {\namepartfamilyi}%
+         {\namepartgiven}%
+         {\namepartgiveni}%
+         {\namepartprefix}%
+         {\namepartprefixi}%
+         {\namepartsuffix}%
+         {\namepartsuffixi}}
+       {}%
+      % At potential truncation point ...
+      \ifnumcomp{\value{listcount}}{=}{\cbx@min + 1}
+        % but enforce plurality of et al - only truncate here if there is at
+        % least one more element after the current potential truncation point
+        % so that "et al" covers at least two elements.
+        {\ifnumcomp{\value{listcount}}{<}{\value{listtotal}}
+          {\printdelim{andothersdelim}\bibstring{andothers}}
+          {\usebibmacro{labelname:doname}%
+            {\namepartfamily}%
+            {\namepartfamilyi}%
+            {\namepartgiven}%
+            {\namepartgiveni}%
+            {\namepartprefix}%
+            {\namepartprefixi}%
+            {\namepartsuffix}%
+            {\namepartsuffixi}}}
+        {}%
+      % After truncation point, do not print name
+      \ifnumcomp{\value{listcount}}{>}{\cbx@min + 1}
+       {\relax}%
+       {}}%
+     % We are looking at name >=3
+     % Name list is < 6 names or we haven't seen this citation before, print normally
+     {\usebibmacro{labelname:doname}%
+       {\namepartfamily}%
+       {\namepartfamilyi}%
+       {\namepartgiven}%
+       {\namepartgiveni}%
+       {\namepartprefix}%
+       {\namepartprefixi}%
+       {\namepartsuffix}%
+       {\namepartsuffixi}}}}
+\makeatother
+
+\usepackage{etoolbox}  % or xpatch
