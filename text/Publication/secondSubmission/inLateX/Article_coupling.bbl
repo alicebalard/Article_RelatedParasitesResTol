@@ -558,6 +558,7 @@
       \field{journaltitle}{Evolution}
       \field{month}{8}
       \field{title}{A unified model for the coevolution of resistance, tolerance, and virulence}
+      \field{volume}{64}
       \field{year}{2010}
       \field{pages}{2988\bibrangedash 3009}
       \range{pages}{22}
@@ -1016,6 +1017,64 @@
       \verb 10.1098/rspb.2000.1100
       \endverb
     \endentry
+    \entry{gouy_de_bellocq_holobiont_2018}{article}{}
+      \name{author}{6}{}{%
+        {{hash=6d119e1b804d8c57bd28793a666bb4de}{%
+           family={Goüy\bibnamedelimb de\bibnamedelima Bellocq},
+           familyi={G\bibinitperiod\bibinitdelim d\bibinitperiod\bibinitdelim B\bibinitperiod},
+           given={Joëlle},
+           giveni={J\bibinitperiod}}}%
+        {{hash=b03058c3f0c4ec2bcf5eadd038a39528}{%
+           family={{Wasimuddin}},
+           familyi={W\bibinitperiod}}}%
+        {{hash=35f4e01186b77bfd125fe5caa2db3936}{%
+           family={Ribas},
+           familyi={R\bibinitperiod},
+           given={Alexis},
+           giveni={A\bibinitperiod}}}%
+        {{hash=be002e3e8cd8953eba4b848a5d3d1de4}{%
+           family={Bryja},
+           familyi={B\bibinitperiod},
+           given={Josef},
+           giveni={J\bibinitperiod}}}%
+        {{hash=76ecb28e52369100387ff79a493e469f}{%
+           family={Piálek},
+           familyi={P\bibinitperiod},
+           given={Jaroslav},
+           giveni={J\bibinitperiod}}}%
+        {{hash=bf60778def53fcee0bf97fb9542d4397}{%
+           family={Baird},
+           familyi={B\bibinitperiod},
+           given={Stuart\bibnamedelimb J.\bibnamedelimi E.},
+           giveni={S\bibinitperiod\bibinitdelim J\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+      }
+      \strng{namehash}{a84fe68de01e3cdfd02c3d6f8cb4f9b4}
+      \strng{fullhash}{052beb00b8acdb95d4394875abf3b848}
+      \strng{bibnamehash}{052beb00b8acdb95d4394875abf3b848}
+      \strng{authorbibnamehash}{052beb00b8acdb95d4394875abf3b848}
+      \strng{authornamehash}{a84fe68de01e3cdfd02c3d6f8cb4f9b4}
+      \strng{authorfullhash}{052beb00b8acdb95d4394875abf3b848}
+      \field{sortinit}{G}
+      \field{sortinithash}{5e8d2bf9d38de41b1528bd307546008f}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{year}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Molecular Ecology}
+      \field{month}{12}
+      \field{title}{Holobiont suture zones: {Parasite} evidence across the {European} house mouse hybrid zone}
+      \field{year}{2018}
+      \verb{doi}
+      \verb 10.1111/mec.14938
+      \endverb
+      \verb{urlraw}
+      \verb 10.1111/mec.14938
+      \endverb
+      \verb{url}
+      \verb 10.1111/mec.14938
+      \endverb
+    \endentry
     \entry{graham_evolutionary_2005}{article}{}
       \name{author}{3}{}{%
         {{hash=23edcc37e99935cc56918f5a584ee9ab}{%
@@ -1092,7 +1151,7 @@
       \field{labeltitlesource}{title}
       \field{issn}{0015-5500}
       \field{journaltitle}{Folia Biologica}
-      \field{title}{{PWD}/{Ph} and {PWK}/{Ph} inbred mouse strains of {Mus} m. musculus subspecies--a valuable resource of phenotypic variations and genomic polymorphisms}
+      \field{title}{{PWD}/{Ph} and {PWK}/{Ph} inbred mouse strains of \textit{Mus~m.~musculus} subspecies--a valuable resource of phenotypic variations and genomic polymorphisms}
       \field{volume}{46}
       \field{year}{2000}
       \field{pages}{31\bibrangedash 41}
@@ -1356,53 +1415,6 @@
       \endverb
       \keyw{Coccidia,Diagnostic PCR,House mice,qPCR,Species-specific prevalence}
     \endentry
-    \entry{Kaltz1998}{article}{}
-      \name{author}{2}{}{%
-        {{hash=bc108fa5d11de5f2ee1dc41dce21b9c6}{%
-           family={Kaltz},
-           familyi={K\bibinitperiod},
-           given={Oliver},
-           giveni={O\bibinitperiod}}}%
-        {{hash=12f98b7b1590e181ad82e481b2db23e9}{%
-           family={Shykoff},
-           familyi={S\bibinitperiod},
-           given={Jacqui\bibnamedelima A},
-           giveni={J\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
-      }
-      \list{publisher}{2}{%
-        {Springer Science}%
-        {Business Media {LLC}}%
-      }
-      \strng{namehash}{75891b876041d884f966ad5ba243cba6}
-      \strng{fullhash}{75891b876041d884f966ad5ba243cba6}
-      \strng{bibnamehash}{75891b876041d884f966ad5ba243cba6}
-      \strng{authorbibnamehash}{75891b876041d884f966ad5ba243cba6}
-      \strng{authornamehash}{75891b876041d884f966ad5ba243cba6}
-      \strng{authorfullhash}{75891b876041d884f966ad5ba243cba6}
-      \field{sortinit}{K}
-      \field{sortinithash}{9fd838a31ba64d981e8f44562bd33f89}
-      \field{extradatescope}{labelyear}
-      \field{labeldatesource}{year}
-      \true{uniqueprimaryauthor}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{journaltitle}{Heredity}
-      \field{month}{10}
-      \field{title}{Local adaptation in host{–}parasite systems}
-      \field{volume}{81}
-      \field{year}{1998}
-      \field{pages}{361\bibrangedash 370}
-      \range{pages}{10}
-      \verb{doi}
-      \verb 10.1046/j.1365-2540.1998.00435.x
-      \endverb
-      \verb{urlraw}
-      \verb 10.1046/j.1365-2540.1998.00435.x
-      \endverb
-      \verb{url}
-      \verb 10.1046/j.1365-2540.1998.00435.x
-      \endverb
-    \endentry
     \entry{klemme_vertebrate_2016}{article}{}
       \name{author}{2}{}{%
         {{hash=dc3cd019c37e0c76589f7df448831cf3}{%
@@ -1460,13 +1472,13 @@
         {{hash=6dede03f2f329727c0f1e39222adcb34}{%
            family={Kutzer},
            familyi={K\bibinitperiod},
-           given={Megan\bibnamedelima AM},
-           giveni={M\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+           given={Megan\bibnamedelimb A.\bibnamedelimi M.},
+           giveni={M\bibinitperiod\bibinitdelim A\bibinitperiod\bibinitdelim M\bibinitperiod}}}%
         {{hash=89b287b9b648301c7e3e7a4e37c22fbf}{%
            family={Armitage},
            familyi={A\bibinitperiod},
-           given={Sophie\bibnamedelima AO},
-           giveni={S\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+           given={Sophie\bibnamedelimb A.\bibnamedelimi O.},
+           giveni={S\bibinitperiod\bibinitdelim A\bibinitperiod\bibinitdelim O\bibinitperiod}}}%
       }
       \strng{namehash}{4878543c76fdc6c0e8b28671da4d370b}
       \strng{fullhash}{4878543c76fdc6c0e8b28671da4d370b}
@@ -1493,6 +1505,102 @@
       \endverb
       \verb{file}
       \verb Full Text:/home/alice/.zotero/zotero/8rqjrnmd.default/zotero/storage/2KHMFLBF/S0944200616300368.html:text/html
+      \endverb
+    \endentry
+    \entry{kvac_coevolution_2013}{article}{}
+      \name{author}{12}{}{%
+        {{hash=8c4be1ad9ad1822c148e71c8af61b748}{%
+           family={Kv{á}{č}},
+           familyi={K\bibinitperiod},
+           given={Martin},
+           giveni={M\bibinitperiod}}}%
+        {{hash=183beee65716c8b212c7816adde1c7ef}{%
+           family={McEvoy},
+           familyi={M\bibinitperiod},
+           given={John},
+           giveni={J\bibinitperiod}}}%
+        {{hash=a5e4f1dae4c3e6d55019c1c6731a4ddd}{%
+           family={Loudov{á}},
+           familyi={L\bibinitperiod},
+           given={Martina},
+           giveni={M\bibinitperiod}}}%
+        {{hash=d2922911783a0d648563f93778b3ce59}{%
+           family={Stenger},
+           familyi={S\bibinitperiod},
+           given={Brianna},
+           giveni={B\bibinitperiod}}}%
+        {{hash=cc9432a9c8df33a4b345f8bba982eae4}{%
+           family={Sak},
+           familyi={S\bibinitperiod},
+           given={Bohumil},
+           giveni={B\bibinitperiod}}}%
+        {{hash=afd207ea657dce9c01f9f10eb12f0707}{%
+           family={Kv{ě}to{ň}ov{á}},
+           familyi={K\bibinitperiod},
+           given={Dana},
+           giveni={D\bibinitperiod}}}%
+        {{hash=22c0bf01f0f29fc7f07abd7bcb7effd3}{%
+           family={Ditrich},
+           familyi={D\bibinitperiod},
+           given={Oleg},
+           giveni={O\bibinitperiod}}}%
+        {{hash=0495bd1b6f600565aaa9c5c1d150ad72}{%
+           family={Ra{š}kov{á}},
+           familyi={R\bibinitperiod},
+           given={Veronika},
+           giveni={V\bibinitperiod}}}%
+        {{hash=a3ba0cff8faf6b70ccb361e158c4e39e}{%
+           family={Moriarty},
+           familyi={M\bibinitperiod},
+           given={Elaine},
+           giveni={E\bibinitperiod}}}%
+        {{hash=4668c42daf70e2e62e2725943e64feb9}{%
+           family={Rost},
+           familyi={R\bibinitperiod},
+           given={Michael},
+           giveni={M\bibinitperiod}}}%
+        {{hash=dbaca358fd41dcd2acd82bbdd270136e}{%
+           family={Machol{á}n},
+           familyi={M\bibinitperiod},
+           given={Milo{š}},
+           giveni={M\bibinitperiod}}}%
+        {{hash=76ecb28e52369100387ff79a493e469f}{%
+           family={Pi{á}lek},
+           familyi={P\bibinitperiod},
+           given={Jaroslav},
+           giveni={J\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Elsevier {BV}}%
+      }
+      \strng{namehash}{205c015c61573d46421919562a841c26}
+      \strng{fullhash}{ef67ea82e5c791a62b66b751b2ae0faa}
+      \strng{bibnamehash}{cbbb431ccc70762ee47cdcce1e9b4c24}
+      \strng{authorbibnamehash}{cbbb431ccc70762ee47cdcce1e9b4c24}
+      \strng{authornamehash}{205c015c61573d46421919562a841c26}
+      \strng{authorfullhash}{ef67ea82e5c791a62b66b751b2ae0faa}
+      \field{sortinit}{K}
+      \field{sortinithash}{9fd838a31ba64d981e8f44562bd33f89}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{year}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{International Journal for Parasitology}
+      \field{month}{9}
+      \field{title}{Coevolution of \textit{Cryptosporidium~tyzzeri} and the house mouse (\textit{Mus~musculus})}
+      \field{volume}{43}
+      \field{year}{2013}
+      \field{pages}{805\bibrangedash 817}
+      \range{pages}{13}
+      \verb{doi}
+      \verb 10.1016/j.ijpara.2013.04.007
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.1016/j.ijpara.2013.04.007
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.1016/j.ijpara.2013.04.007
       \endverb
     \endentry
     \entry{Lefvre2010}{article}{}
@@ -1703,7 +1811,7 @@
       \field{labeltitlesource}{title}
       \field{journaltitle}{bioRxiv}
       \field{month}{12}
-      \field{title}{Widespread introgression of the Mus musculus musculus {Y} chromosome in Central Europe}
+      \field{title}{Widespread introgression of the \textit{Mus musculus musculus} {Y} chromosome in {Central Europe}}
       \field{year}{2019}
       \verb{doi}
       \verb 10.1101/2019.12.23.887471
@@ -2092,8 +2200,8 @@
     \endentry
     \entry{R_2010}{manual}{}
       \name{author}{1}{}{%
-        {{hash=dcdebb6b35bff7c0568bf8c50ef8626d}{%
-           family={{R Core Team}},
+        {{hash=74eaa7e448f8b6680c1179aa0228bb13}{%
+           family={{R Development Core Team}},
            familyi={R\bibinitperiod}}}%
       }
       \list{location}{1}{%
@@ -2102,12 +2210,12 @@
       \list{organization}{1}{%
         {R Foundation for Statistical Computing}%
       }
-      \strng{namehash}{dcdebb6b35bff7c0568bf8c50ef8626d}
-      \strng{fullhash}{dcdebb6b35bff7c0568bf8c50ef8626d}
-      \strng{bibnamehash}{dcdebb6b35bff7c0568bf8c50ef8626d}
-      \strng{authorbibnamehash}{dcdebb6b35bff7c0568bf8c50ef8626d}
-      \strng{authornamehash}{dcdebb6b35bff7c0568bf8c50ef8626d}
-      \strng{authorfullhash}{dcdebb6b35bff7c0568bf8c50ef8626d}
+      \strng{namehash}{74eaa7e448f8b6680c1179aa0228bb13}
+      \strng{fullhash}{74eaa7e448f8b6680c1179aa0228bb13}
+      \strng{bibnamehash}{74eaa7e448f8b6680c1179aa0228bb13}
+      \strng{authorbibnamehash}{74eaa7e448f8b6680c1179aa0228bb13}
+      \strng{authornamehash}{74eaa7e448f8b6680c1179aa0228bb13}
+      \strng{authorfullhash}{74eaa7e448f8b6680c1179aa0228bb13}
       \field{sortinit}{R}
       \field{sortinithash}{da6b42bd3ab22fee61abed031ee405f7}
       \field{extradatescope}{labelyear}
@@ -2115,14 +2223,9 @@
       \true{uniqueprimaryauthor}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
+      \field{note}{http://www.R-project.org/}
       \field{title}{R: A Language and Environment for Statistical Computing}
       \field{year}{2013}
-      \verb{urlraw}
-      \verb http://www.R-project.org/
-      \endverb
-      \verb{url}
-      \verb http://www.R-project.org/
-      \endverb
     \endentry
     \entry{raaberg_decomposing_2009}{article}{}
       \name{author}{3}{}{%
@@ -2400,6 +2503,9 @@
       \field{year}{1996}
       \field{pages}{255\bibrangedash 262}
       \range{pages}{8}
+      \verb{doi}
+      \verb 10.2307/3284157
+      \endverb
       \keyw{Animals,Animals,Domestic,Coccidiosis,Disease Models,Animal,Dose-Response Relationship,Immunologic,Eimeria,Feces,Immunocompetence,Immunocompromised Host,Intestinal Diseases,Parasitic,Mice,Mice,Inbred BALB C,Mice,Mutant Strains,Mice,SCID,Parasite Egg Count}
     \endentry
     \entry{schmid-hempel_evolutionary_2013}{book}{}
@@ -2429,6 +2535,67 @@
       \field{year}{2013}
       \verb{doi}
       \verb 10.1093/acprof:oso/9780199229482.001.0001
+      \endverb
+    \endentry
+    \entry{schulte_host_2011}{article}{}
+      \name{author}{5}{}{%
+        {{hash=79f35202293f72636bba38dd6f593e72}{%
+           family={Schulte},
+           familyi={S\bibinitperiod},
+           given={Rebecca\bibnamedelima D.},
+           giveni={R\bibinitperiod\bibinitdelim D\bibinitperiod}}}%
+        {{hash=920e835f41639c47d23406d8c73e3bf5}{%
+           family={Makus},
+           familyi={M\bibinitperiod},
+           given={Carsten},
+           giveni={C\bibinitperiod}}}%
+        {{hash=4245c3534acfddf4c8c14ea3bf334e70}{%
+           family={Hasert},
+           familyi={H\bibinitperiod},
+           given={Barbara},
+           giveni={B\bibinitperiod}}}%
+        {{hash=43af534479fc9c337bf8a29994587cdb}{%
+           family={Michiels},
+           familyi={M\bibinitperiod},
+           given={Nico\bibnamedelima K.},
+           giveni={N\bibinitperiod\bibinitdelim K\bibinitperiod}}}%
+        {{hash=df2ec75afb693cd07da02d621fca5774}{%
+           family={Schulenburg},
+           familyi={S\bibinitperiod},
+           given={Hinrich},
+           giveni={H\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {The Royal Society}%
+      }
+      \strng{namehash}{8ca10a0c57992109c05e825ba67a406d}
+      \strng{fullhash}{5f90dbbdaca9f8f42b72cf3d40ada0ea}
+      \strng{bibnamehash}{5f90dbbdaca9f8f42b72cf3d40ada0ea}
+      \strng{authorbibnamehash}{5f90dbbdaca9f8f42b72cf3d40ada0ea}
+      \strng{authornamehash}{8ca10a0c57992109c05e825ba67a406d}
+      \strng{authorfullhash}{5f90dbbdaca9f8f42b72cf3d40ada0ea}
+      \field{sortinit}{S}
+      \field{sortinithash}{322b1d5276f2f6c1bccdcd15920dbee6}
+      \field{extradatescope}{labelyear}
+      \field{labeldatesource}{year}
+      \true{uniqueprimaryauthor}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Proceedings of the Royal Society B: Biological Sciences}
+      \field{month}{2}
+      \field{title}{Host{–}parasite local adaptation after experimental coevolution of \textit{Caenorhabditis elegans} and its microparasite \textit{Bacillus thuringiensis}}
+      \field{volume}{278}
+      \field{year}{2011}
+      \field{pages}{2832\bibrangedash 2839}
+      \range{pages}{8}
+      \verb{doi}
+      \verb 10.1098/rspb.2011.0019
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.1098/rspb.2011.0019
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.1098/rspb.2011.0019
       \endverb
     \endentry
     \entry{shaw_patterns_1995}{article}{}
