@@ -100,6 +100,27 @@ write.csv(tS1, "../figures/TableS1_temp.csv", row.names = F) # NB done for FULL 
 ## Age of mice
 range(as.numeric(art2SummaryDF$ageAtInfection))
 
+# to pretty plot
+d <- aggregate(as.numeric(art2SummaryDF$ageAtInfection),
+               list(Mouse_genotype = art2SummaryDF$Mouse_genotype), mean)
+names(d)[2] <- "mean_age_genotype"
+df <- merge(art2SummaryDF, d)
+df$Mouse_genotype <- reorder(df$Mouse_genotype, as.numeric(df$mean_age_genotype))
+
+avg <- df %>%
+    summarize(avg = mean(mean_age_genotype, na.rm = T)) %>%
+    pull(avg)
+
+ggplot(df, aes(Mouse_genotype, as.numeric(ageAtInfection), col = Mouse_genotype)) +
+    geom_segment(aes(x = Mouse_genotype, xend = Mouse_genotype,
+                     y = avg, yend = mean_age_genotype),
+                 size = 0.8) +
+    geom_hline(aes(yintercept = avg), color = "gray70", size = 0.6) +
+    
+    coord_flip() +
+    geom_jitter(size = 2, alpha = 0.25, width = 0.2) +
+    geom_point(aes(Mouse_genotype, as.numeric(mean_age_genotype)), size = 5) 
+    
 ###### what is the overall prepatent period for each parasite isolate? ######
 d <- as.data.frame(
         DSart2[!is.na(DSart2$OPG) & DSart2$OPG > 0,] %>% 
