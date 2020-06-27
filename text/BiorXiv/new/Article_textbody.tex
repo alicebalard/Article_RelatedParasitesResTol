@@ -51,10 +51,58 @@
 \titlelabel{\thetitle.\quad}
 \titleformat*{\section}{\large\bfseries}
 \usepackage{upgreek} % greek letters not in italic upalpha etc.
+
+%%%% for BiorXiv
+\usepackage{authblk}
+\title{Coupling between tolerance and resistance differs between related \textit{Eimeria} parasite species: implications for coevolution with their mouse hosts}
+\author[1,2]{Alice Balard}  
+\author[1,2]{Víctor Hugo Jarquín-Díaz}
+\author[1]{Jenny Jost}
+\author[1]{Vivian Mittné}
+\author[1]{Francisca Böhning}
+\author[3]{Ľudovít Ďureje}
+\author[3]{Jaroslav Piálek}
+\author[1,2]{Emanuel Heitlinger}
+\affil[1]{Institute for Biology. Department of Molecular Parasitology. Humboldt University Berlin (HU). Philippstr. 13, Haus 14, 10115, Berlin, Germany}
+\affil[2]{Leibniz-Institut für Zoo- und Wildtierforschung (IZW) im Forschungsverbund Berlin e.V.. Alfred-Kowalke-Straße 17, 10315, Berlin, Germany}
+\affil[3]{Research Facility Studenec, Institute of Vertebrate Biology, Czech Academy of Sciences, Květná 8, 603 65 Brno, Czech Republic}
+\date{}                     %% if you don't need date to appear
+\setcounter{Maxaffil}{0}
+\renewcommand\Affilfont{\itshape\small}
+\setlength{\affilsep}{.3em}%between authors and affil
+
+\makeatletter
+\def\@maketitle{%
+  \newpage
+  \null
+  \vskip 2em%
+  \begin{center}%
+    \let \footnote \thanks
+         {\large\textbf \@title \par}%
+         \vskip 1.5em%
+                {\small
+                  \lineskip .5em%
+                  \begin{tabular}[t]{c}%
+                    \baselineskip=12pt
+                    \@author
+                  \end{tabular}\par}%
+                \vskip 1em%
+                       {\large \@date}%
+  \end{center}%
+  \par
+  \vskip -3em}
+\makeatother
+
 %%%%%%%%%%%%%%%%%%%% Document code starts here %%%%%%%%%%%%%%%%%%%%
 \begin{document}
 
-\section*{Coupling between tolerance and resistance differs between related \textit{Eimeria} parasite species: implications for coevolution with their mouse hosts}
+{\let\clearpage\relax%
+  \maketitle }
+
+\textbf{Corresponding author:} Alice Balard, alice.cam.balard@gmail.com\\
+\textbf{Authors contributions:} AB, JP and EH designed the experiment and analysis. LD and JP provided the research material. AB, VHJD, JJ, VM and FB carried out the experiment. AB performed the analysis. AB and EH wrote the manuscript, with major contribution from JP and feedback from all the authors.
+Funding: This work was funded by the German Research Foundation (DFG) Grant [HE 7320/1-1] to EH. VHJ is an associated student of GRK 2046 funded by the DFG. The maintenance of wild-derived strains was supported by the ROSE program from Czech Academy of Sciences and the Czech Science Foundation (project 16-23773S) to JP. \\
+\textbf{Data accessibility:} Code and data used for this article can be found at: \href{https://github.com/alicebalard/Article_RelatedParasitesResTol}{https://github.com/alicebalard/Article\_RelatedParasitesResTol}
 
 \section*{Abstract}
 Resistance (host capacity to reduce parasite burden) and tolerance (host capacity to reduce impact on its health for a given parasite burden) manifest two different lines of defence. Tolerance can be independent from resistance, traded-off against it, or the two can be positively correlated because of redundancy in underlying (immune) processes. We here tested whether this coupling between tolerance and resistance could differ upon infection with closely related parasite species.
@@ -159,14 +207,15 @@ In this study, we assessed resistance and tolerance to two closely related paras
 
 From a practical "measurement" perspective we can ask whether tolerance can be predicted from resistance, as the latter is easier to measure (e.g. in field sampling). Many studies assess the impact of parasites on host fitness based on resistance. If, as we found in the present study, resistance and tolerance are decoupled this can be missleading. In our host system, the house mice, for example, it has been shown that hybrids between \textit{M.~m.~domesticus} and \textit{M.~m.~musculus} are more resistant to parasites \citep{baird_where_2012, Balard2020}, including \textit{Eimeria}, but tolerance could not be measured under natural conditions \citep{Balard2020}. The effect of parasites on host fitness in the evolution of the house mouse hybrid zone is thus still rather ambiguous \citep{baird_shifting_2019}. We show that careful distinction between parasite species is necessary when analysing parasite host interaction \parencite[see also][]{jarquin-diaz_detection_2019} and that it is indispensable to measure both resistance and tolerance in \textit{Eimeria} infections of house mice. \par
 
-In this work we used the concept of tolerance as used originally in the plant litterature \mbox{\citep{Fineblum1995}} and later on transfered to animal studies \mbox{\citep{raaberg_disentangling_2007}}. This concept of tolerance can be criticised, as it links mathematically tolerance to resistance. Nevertheless, we argue that this view is biologically meaningfull considering resistance and tolerance as a step-wise defence system, one step limiting the parasite multiplication, the other limiting the impact of this multiplication on fitness-related traits. To limit the possible statistical artifact, our approch did not only consist in calculing blindly correlations between resistance and tolerance, but we also tested differences in resistance, impact on health and tolerance. We additionally excluded the possibility of positive correlation between mean health-effect and mean resistance of each host strains, which could indicate some host strains having few parasites-few effects on health, and others more parasites-more effects on health: this configuration would limit the possibility of detecting an actual resistance-tolerance trade-off.
+In this work we used the concept of tolerance as used originally in the plant litterature \mbox{\citep{Fineblum1995}} and later on transfered to animal studies \mbox{\citep{raaberg_disentangling_2007}}. This concept of tolerance can be criticised, as it links mathematically tolerance to resistance. Nevertheless, we argue that this view is biologically meaningfull considering resistance and tolerance as a step-wise defence system, one step limiting the parasite multiplication, the other limiting the impact of this multiplication on fitness-related traits. To limit the possible statistical artifact, our approch did not only consist in calculing blindly correlations between resistance and tolerance, but we also tested differences in resistance, impact on health and tolerance. We additionally excluded the possibility of positive correlation between mean health-effect and mean resistance of each host strains, which could indicate some host strains having few parasites-few effects on health, and others more parasites-more effects on health: this configuration would limi the possibility of detecting an actual resistance-tolerance trade-off.
 \par
 
 More generally, in a evolutionary perspective, coupling between resistance and tolerance might help determine if coevolution between host and parasite can be expected: a host-parasite system in which one finds negative coupling between tolerance and resistance would be an especially promising system for studies of host-parasite co-evolution. Indeed, coevolution in host-parasite systems is often assumed but rarely proven \citep{Woolhouse2002}. \cite{Janzen1980} notes that not all parasite-host systems are coevolving. The presence of efficient host defences against a given parasite is not necessarily produced in response to this parasite specifically and the parasite does not necessarily respond specifically. In the mouse-\textit{E.~ferrisi} system, where resistance and tolerance are decoupled, host and parasite fitness might be decoupled as a result, making host-parasite coevolution less likely. In the mouse-\textit{E.~falciformis} system we found a negative coupling between tolerance and resistance, making coevolution between host and parasite more likely. \par
 
 Differences between parasite species could explain the evolution of different strategies: \textit{E.~ferrisi} commits to sexual reproduction after a relatively short time with few cycles of asexual expansion \citep{al-khlifeh_eimeria_2019, ankrom_life_1975}, while \textit{E.~falciformis} has a relatively longer life cycle \citep{al-khlifeh_eimeria_2019, haberkorn_entwicklung_1970}. As \textit{E.~ferrisi }infections do not reach extremely high intensities, high tolerance might be the optimal strategy for both house mouse subspecies. Resistance could then evolve relatively freely without any major impact of the parasite on the hosts’ health. Moreover, our results did not support host adaptation of \textit{E.~ferrisi}, which might be explained by the absence of host-parasite coevolution caused by uncoupling of parasite and host fitness. In the case of \textit{E.~falciformis}, the long life cycle might lead to high tissue load. Tissue damage is observed during sexual reproduction for this parasite \citep{ehret_dual_2017} and might mean that a certain level of resistance is required. On the other hand, immunopathology has been observed in advanced \textit{E.~falciformis} infections \citep{stange_il-22_2012}. These intrinsic characteristics of \textit{E.~falciformis} might lead to multiple different optima for resistance and tolerance, leading to a trade-off.\par
 
-In conclusion, we argue that the difference between resistance and tolerance coupling in two different parasites can guide research in the house mouse system: if the effects of host hybridisation should be studied independently of potential host-parasite coadaptation, a parasite species leading to uncoupling between resistance and tolerance of the host (e.g. \textit{E.~ferrisi}) might be the most suitable parasite. If coevolution between hosts and parasites should be studied, a parasite species for which resistance and tolerance of the host are negatively correlated (e.g. \textit{E.~falciformis}) would be a more plausible target. Generally, we showed that the coupling between resistance and tolerance can differ between closely related parasite species and we argue that this trait of a host-parasite system determines the questions to be best approached with a particular parasite. 
+In conclusion, we argue that the difference between resistance and tolerance coupling in two different parasites can guide research in the house mouse system: if the effects of host hybridisation should be studied independently of potential host-parasite coadaptation, a parasite species leading to uncoupling between resistance and tolerance of the host (e.g. \textit{E.~ferrisi}) might be the most suitable parasite. If coevolution between hosts and parasites should be studied, a parasite species for which resistance and tolerance of the host are negatively correlated (e.g. \textit{E.~falciformis}) would be a more plausible target. Generally, we showed that the coupling between resistance and tolerance can differ between closely related parasite species and we
+ argue that this trait of a host-parasite system determines the questions to be best approached with a particular parasite. 
 
 \printbibliography
 
@@ -199,5 +248,37 @@ In conclusion, we argue that the difference between resistance and tolerance cou
 \textbf{Figure 4. No indication of resistance-tolerance coupling for \textit{E.~ferrisi} isolate Brandenburg64.} Colors represent mouse subspecies (blue: \textit{M.~m.~domesticus}, red: \textit{M.~m.~musculus}, purple: Mmd-Mmm). Left side: comparison of maximum oocysts per gram of feces used as a proxy for (inverse of) resistance (A), impact on weight measured as the maximum weight loss during patent period relative to starting weight (B) and tolerance between mouse groups estimated by the slope of the linear regression with null intercept modelling maximum relative weight loss as a response of maximum oocysts per gram of feces, a steep slope corresponding to a low tolerance (C). Maximum number of OPG and relative weight loss differ between mouse groups, but tolerance is similar. Right side: non significant positive correlation between mean maximum oocysts per gram of feces and mean relative weight loss (D) and absence of correlation between maximum oocysts per gram of feces used as a proxy for (inverse of) resistance and tolerance (E); Grey error bars represent 95\% confidence intervals. Our results do not support coupling between resistance and tolerance \textit{E.~ferrisi} isolate Brandenburg64.
 
 \textbf{Figure 5. Coupling between resistance and tolerance for \textit{E.~falciformis} isolate Brandenburg88.} Colors represent mouse subspecies (blue: \textit{M.~m.~domesticus}, red: \textit{M.~m.~musculus}, purple: Mmd-Mmm). Left side: comparison of maximum oocysts per gram of feces used as a proxy for (inverse of) resistance (A), impact on weight measured as the maximum weight loss during patent period relative to starting weight (B) and tolerance between mouse groups estimated by the slope of the linear regression with null intercept modelling maximum relative weight loss as a response of maximum oocysts per gram of feces, a steep slope corresponding to a low tolerance (C). Maximum number of OPG, relative weight loss and tolerance differ between mouse groups. Right side: non significant negative correlation between mean maximum oocysts per gram of feces and mean relative weight loss (D) and strong negative correlation between maximum oocysts per gram of feces used as a proxy for (inverse of) resistance and tolerance (E); Grey error bars represent 95\% confidence intervals. Our results support coupling between resistance and tolerance \textit{E.~falciformis} isolate Brandenburg88.
+
+\section*{Figures}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\linewidth,height=\textheight,keepaspectratio]{images/Fig1_final.pdf}
+	\caption{Parasite isolates and mouse wild-derived strains.}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\linewidth,height=\textheight,keepaspectratio]{images/Fig2_final.pdf}
+	\caption{Parasite density (A) and relative weight (B) during \textit{Eimeria} infection.}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\linewidth,height=\textheight,keepaspectratio]{images/Fig3_final.pdf}
+	\caption{Comparison of resistance, impact on weight and tolerance between mouse strains for both \textit{Eimeria~ferrisi} isolates.}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\linewidth,height=\textheight,keepaspectratio]{images/Fig4_final.pdf}
+	\caption{No indication of resistance-tolerance coupling for \textit{E.~ferrisi} isolate Brandenburg64.}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\linewidth,height=\textheight,keepaspectratio]{images/Fig5_final.pdf}
+	\caption{Coupling between resistance and tolerance for \textit{E.~falciformis} isolate Brandenburg88.}
+\end{figure}
 
 \end{document}
