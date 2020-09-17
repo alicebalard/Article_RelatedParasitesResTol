@@ -605,8 +605,19 @@ listBigPlot_88 <- lapply(MyListDF_88, function(x){
                         myshapes = c(15,16,17,15,16,15,16, 17))
 })
 
+# test outlier
+MyListDF_88_full_noPWD <- MyListDF_88$full[!MyListDF_88$full$Mouse_genotype %in% "PWD",]
+listBigPlot_88_noPWD <- getCouplingPlot(
+    MyListDF_88_full_noPWD, isZINB=TRUE, posx1 = 1.5e6, posy1 = 0.01, posx2 = 1.5e6, posy2 = -0.09, 
+    mycolors = c("blue", "blue", "blue", "purple", "purple", "red", "red","red", "red"),
+    myshapes = c(15,16,17,15,16,15,16, 17))
+listBigPlot_88_noPWD
+# test outlier
+
 Fig5 <- make5panelsPlot(res = listPlotRes_88$full, imp = listPlotImp_88$full, tol = listPlotTol_88$full, 
                         bp1 = listBigPlot_88$full[[1]], bp2 = listBigPlot_88$full[[2]])
+
+Fig5
 
 pdf(file ="../figures/Fig5_temp.pdf",  width = 15, height = 10)
 Fig5

@@ -1,0 +1,17 @@
+[0] Config.pm:304> INFO - This is Biber 2.12
+[0] Config.pm:307> INFO - Logfile is 'Article_main.blg'
+[28] biber:315> INFO - === Mon Jun 29, 2020, 01:11:20
+[49] Biber.pm:371> INFO - Reading 'Article_main.bcf'
+[123] Biber.pm:889> INFO - Found 54 citekeys in bib section 0
+[135] Biber.pm:4093> INFO - Processing section 0
+[150] Biber.pm:4254> INFO - Looking for bibtex format file 'mybib.bib' for section 0
+[184] bibtex.pm:1512> INFO - LaTeX decoding ...
+[735] bibtex.pm:1329> INFO - Found BibTeX data source 'mybib.bib'
+[1487] Utils.pm:193> WARN - BibTeX subsystem: /tmp/RU6ZEhi6JB/mybib.bib_10115.utf8, line 3171, warning: 102 characters of junk seen at toplevel
+[1567] UCollate.pm:68> INFO - Overriding locale 'en-GB' defaults 'variable = shifted' with 'variable = non-ignorable'
+[1567] UCollate.pm:68> INFO - Overriding locale 'en-GB' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[1567] Biber.pm:3921> INFO - Sorting list 'apa/global//global/global' of type 'entry' with template 'apa' and locale 'en-GB'
+[1567] Biber.pm:3927> INFO - No sort tailoring available for locale 'en-GB'
+[1636] bbl.pm:636> INFO - Writing 'Article_main.bbl' with encoding 'UTF-8'
+[1668] bbl.pm:739> INFO - Output to Article_main.bbl
+[1668] Biber.pm:110> INFO - WARNINGS: 1
