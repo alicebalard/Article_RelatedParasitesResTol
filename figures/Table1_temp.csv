@@ -1,9 +1,9 @@
-"Var1","Var2","Brandenburg139 (E. ferrisi)_F","Brandenburg139 (E. ferrisi)_M","Brandenburg64 (E. ferrisi)_F","Brandenburg64 (E. ferrisi)_M","Brandenburg88 (E. falciformis)_F","Brandenburg88 (E. falciformis)_M"
-"SCHUNT","M.m.dom",2,5,8,6,3,3
-"STRA","M.m.dom",4,2,7,8,3,4
-"SCHUNT-STRA","M.m.dom",NA,NA,4,2,3,5
-"STRA-BUSNA","Hybrid_mus_dom",NA,NA,3,5,5,3
-"SCHUNT-PWD","Hybrid_mus_dom",NA,NA,5,3,2,4
-"PWD-BUSNA","M.m.mus",NA,NA,5,4,3,4
-"BUSNA","M.m.mus",4,2,6,8,4,3
-"PWD","M.m.mus",3,3,3,10,6,1
+"Var1","Var2","Brandenburg64 (E. ferrisi)_F","Brandenburg64 (E. ferrisi)_M","Brandenburg88 (E. falciformis)_F","Brandenburg88 (E. falciformis)_M"
+"SCHUNT","M.m.dom",8,6,3,3
+"STRA","M.m.dom",7,8,3,4
+"SCHUNT-STRA","M.m.dom",4,2,3,5
+"STRA-BUSNA","Hybrid_mus_dom",3,5,5,3
+"SCHUNT-PWD","Hybrid_mus_dom",5,3,2,4
+"PWD-BUSNA","M.m.mus",5,4,3,4
+"BUSNA","M.m.mus",6,8,4,3
+"PWD","M.m.mus",3,10,6,1
