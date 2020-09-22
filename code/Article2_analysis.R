@@ -34,6 +34,10 @@ nrow(art2SummaryDF_conservative)
 art2SummaryDF_conservative <- art2SummaryDF_conservative[!art2SummaryDF_conservative$infection_isolate %in% "Brandenburg139 (E. ferrisi)",]
 nrow(art2SummaryDF_conservative)
 
+## NEW remove E139 in raw data too
+DSart2 <- DSart2[!DSart2$infection_isolate %in% "Brandenburg139 (E. ferrisi)",]
+DSart2_conservative <- DSart2_conservative[!DSart2_conservative$infection_isolate %in% "Brandenburg139 (E. ferrisi)",]
+
 # for further plots:
 art2SummaryDF$label <- art2SummaryDF$Mouse_genotype
 levels(art2SummaryDF$label) <- as.character(c(1:8))
@@ -385,7 +389,7 @@ get_plot_par <- function(df, npara, cols, plottype, N = 4, linetype, pointshape)
                         scale_shape_manual(values = pointshape) +
                         theme(axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
                 if(plottype == "RES" | plottype == "RES_ZI"){
-                        plot <- plot + scale_y_log10("(predicted) maximum million OPG \n(oocysts per gram of feces)",
+                        plot <- plot + scale_y_continuous("(predicted) maximum million OPG \n(oocysts per gram of feces)",
                                                      breaks = seq(0, 5e6, 0.5e6),
                                                      labels = as.character(seq(0, 5e6, 0.5e6)/1e6))+
                                 ggtitle("Maximum parasite load \n=(inverse of) resistance")
@@ -653,54 +657,59 @@ names(dfTolPred64_88)[names(dfTolPred64_88) %in% c("predicted", "conf.low",  "st
 finalPredDF_64_88 <- merge(merge(dfResPred64_88, dfImpPred64_88), dfTolPred64_88)
 
 # OPG-relWL
-lm1 <- lm(predicted_OPG ~ predicted_relWL * infection_isolate, data = finalPredDF_64_88)
-anova(lm1) # interaction significant
-# Obtain slopes
-lm1$coefficients # positive for Efer, ne
+### Test significance
+# inf iso
+lrtest(lm(predicted_OPG ~ predicted_relWL * infection_isolate, data = finalPredDF_64_88),
+       lm(predicted_OPG ~ predicted_relWL, data = finalPredDF_64_88))
+# predWL
+lrtest(lm(predicted_OPG ~ predicted_relWL * infection_isolate, data = finalPredDF_64_88),
+       lm(predicted_OPG ~ infection_isolate, data = finalPredDF_64_88))
+# interaction
+lrtest(lm(predicted_OPG ~ predicted_relWL * infection_isolate, data = finalPredDF_64_88),
+       lm(predicted_OPG ~ predicted_relWL + infection_isolate, data = finalPredDF_64_88))
 # plot 
 ggplot(finalPredDF_64_88, aes(x= predicted_OPG, y = predicted_relWL))+
-    geom_point(aes(col = Genotype), size = 4) +
+    geom_point(aes(col = Genotype)) +
     geom_smooth(method = "lm", aes(linetype=infection_isolate))
 
 # remove outlier PWD
-lm1 <- lm(predicted_OPG ~ predicted_relWL * infection_isolate, data = finalPredDF_64_88[finalPredDF_64_88$Genotype!= "8. PWD",])
-anova(lm1) # interaction significant
-# Obtain slopes
-lm1$coefficients
-lm1.lst <- lstrends(lm1, "infection_isolate", var="predicted_relWL")
-# Compare slopes
-pairs(lm1.lst) # difference of slope
-# plot 
-ggplot(finalPredDF_64_88[finalPredDF_64_88$Genotype!= "8. PWD",], aes(x= predicted_OPG, y = predicted_relWL))+
-    geom_point(aes(col = Genotype)) +
-    geom_smooth(method = "lm", aes(col=infection_isolate))
+# inf iso
+lrtest(lm(predicted_OPG ~ predicted_relWL * infection_isolate, data = finalPredDF_64_88[finalPredDF_64_88$Genotype!= "8. PWD",]),
+       lm(predicted_OPG ~ predicted_relWL, data = finalPredDF_64_88[finalPredDF_64_88$Genotype!= "8. PWD",]))
+# predWL
+lrtest(lm(predicted_OPG ~ predicted_relWL * infection_isolate, data = finalPredDF_64_88[finalPredDF_64_88$Genotype!= "8. PWD",]),
+       lm(predicted_OPG ~ infection_isolate, data = finalPredDF_64_88[finalPredDF_64_88$Genotype!= "8. PWD",]))
+# interaction
+lrtest(lm(predicted_OPG ~ predicted_relWL * infection_isolate, data = finalPredDF_64_88[finalPredDF_64_88$Genotype!= "8. PWD",]),
+       lm(predicted_OPG ~ predicted_relWL + infection_isolate, data = finalPredDF_64_88[finalPredDF_64_88$Genotype!= "8. PWD",]))
 
 # RES-TOL
-lm2 <- lm(predicted_OPG ~ predicted_Tol * infection_isolate, data = finalPredDF_64_88)
-lm2
-anova(lm2) # NO significant interactions, but tolerance different for both parasites
-# Obtain slopes
-lm2$coefficients
-lm2.lst <- lstrends(lm2, "infection_isolate", var="predicted_Tol")
-# Compare slopes
-pairs(lm2.lst) # no difference of slope
+### Test significance
+# inf iso
+lrtest(lm(predicted_OPG ~ predicted_Tol * infection_isolate, data = finalPredDF_64_88),
+       lm(predicted_OPG ~ predicted_Tol, data = finalPredDF_64_88))
+# predTol
+lrtest(lm(predicted_OPG ~ predicted_Tol * infection_isolate, data = finalPredDF_64_88),
+       lm(predicted_OPG ~ infection_isolate, data = finalPredDF_64_88))
+# interaction
+lrtest(lm(predicted_OPG ~ predicted_Tol * infection_isolate, data = finalPredDF_64_88),
+       lm(predicted_OPG ~ predicted_Tol + infection_isolate, data = finalPredDF_64_88))
+
+# remove outlier PWD
+# inf iso
+lrtest(lm(predicted_OPG ~ predicted_Tol * infection_isolate, data = finalPredDF_64_88[finalPredDF_64_88$Genotype!= "8. PWD",]),
+       lm(predicted_OPG ~ predicted_Tol, data = finalPredDF_64_88[finalPredDF_64_88$Genotype!= "8. PWD",]))
+# predTol
+lrtest(lm(predicted_OPG ~ predicted_Tol * infection_isolate, data = finalPredDF_64_88[finalPredDF_64_88$Genotype!= "8. PWD",]),
+       lm(predicted_OPG ~ infection_isolate, data = finalPredDF_64_88[finalPredDF_64_88$Genotype!= "8. PWD",]))
+# interaction
+lrtest(lm(predicted_OPG ~ predicted_Tol * infection_isolate, data = finalPredDF_64_88[finalPredDF_64_88$Genotype!= "8. PWD",]),
+       lm(predicted_OPG ~ predicted_Tol + infection_isolate, data = finalPredDF_64_88[finalPredDF_64_88$Genotype!= "8. PWD",]))
+# NO significant interactions, but tolerance different for both parasites
 # plot 
 ggplot(finalPredDF_64_88, aes(x= predicted_OPG, y = -predicted_Tol))+
     geom_point(aes(col = Genotype)) +
     geom_smooth(method = "lm", aes(linetype=infection_isolate))
-    
-# remove outlier PWD
-lm2 <- lm(predicted_OPG ~ -predicted_Tol * infection_isolate, data = finalPredDF_64_88[finalPredDF_64_88$Genotype!= "8. PWD",])
-anova(lm2) # NO significant interactions, but tolerance different for both parasites
-# Obtain slopes
-lm2$coefficients
-lm2.lst <- lstrends(lm2, "infection_isolate", var="predicted_Tol")
-# Compare slopes
-pairs(lm2.lst) # no difference of slope
-# plot 
-ggplot(finalPredDF_64_88[finalPredDF_64_88$Genotype!= "8. PWD",], aes(x= predicted_OPG, y = -predicted_Tol))+
-    geom_point(aes(col = Genotype)) +
-    geom_smooth(method = "lm", aes(col=infection_isolate))
 
 ############### Local adaptation of pure strains for E. ferrisi
 MyListDF_locad <- MyListDF
@@ -728,6 +737,8 @@ MyListDF_locad$cons$combi <- factor(MyListDF_locad$cons$combi)
 ### Res
 # no zero, so we use "classic" negbin:
 modResLA <- glm.nb(max.OPG ~ combi, data = MyListDF_locad$full)
+lrtest(glm.nb(max.OPG ~ combi, data = MyListDF_locad$full),
+       glm.nb(max.OPG ~ 1, data = MyListDF_locad$full))
 summary(modResLA) # p= 0.00323 ** 
 
 plot_model(modResLA, type = "pred")#, show.data = TRUE)
@@ -778,7 +789,7 @@ MyListDF_locad$cons <- dropLevelsAllFactorsDF(
 lapply(MyListDF_locad, function(x){testSignif(x,"RES")$LRT}) # interaction factor significant
 lapply(MyListDF_locad, function(x){testSignifSUBSPECIES(x,"RES")$LRT}) # interaction factor not significant
 mR <- testSignifSUBSPECIES(MyListDF_locad$full,"RES")
-plot_model(mR$)
+
 ### Imp
 lapply(MyListDF_locad, function(x){testSignif(x,"IMP")$LRT}) # interaction factor not significant (apart conserv.)
 ### Tol
