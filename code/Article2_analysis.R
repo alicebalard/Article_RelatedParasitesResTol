@@ -528,6 +528,13 @@ AIC(mod2)
 mod1$twologlik/2
 mod2$loglik
 
+# test uniformity of distribution of residuals 
+plot(mod1)
+
+resid(mod1)
+plot(MyListDF_64_88$full$max.OPG, resid(mod2))
+abline(0, 0)
+
 # mod2 selected. 
 
 # RES
