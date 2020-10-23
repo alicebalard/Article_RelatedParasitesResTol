@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3911935.svg)](https://doi.org/10.5281/zenodo.3911935)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4122009.svg)](https://doi.org/10.5281/zenodo.4122009)
 
 This is the full code used for the research article 
 
